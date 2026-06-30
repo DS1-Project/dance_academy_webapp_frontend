@@ -26,7 +26,15 @@ const Login = () => {
     const result = await login(email, password);
 
     if (result.success) {
-      navigate("/dashboard");
+      // Extraemos el rol del usuario desde el resultado del login
+      const role = result.user?.role; 
+      
+      // Evaluamos si el rol es 'admin' o 'director'
+      if (role === "admin" || role === "director") {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
     } else {
       setError(result.error || "Error al iniciar sesión");
     }
