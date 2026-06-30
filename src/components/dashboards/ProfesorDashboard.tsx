@@ -1,5 +1,5 @@
 import { useState, useRef, DragEvent, ChangeEvent } from "react";
-import type { User } from "@/contexts/AuthContext";
+import type { User } from "@/types/auth";
 import { choreographies as initialChoreographies, type Choreography } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import {

@@ -1,0 +1,11 @@
+# Configuración General de Django
+DEBUG=True
+SECRET_KEY=s214RG0G0WER02@FQE22312312
+
+
+# Configuración de Base de Datos (Supabase PostgreSQL — pooler IPv4, session mode)
+DB_NAME=postgres
+DB_USER=postgres.oeugwbjjenvqkifoulfk
+DB_PASSWORD=LhODeKxGkvxr8WJ9
+DB_HOST=aws-1-us-east-1.pooler.supabase.com
+DB_PORT=5432

@@ -1,4 +1,4 @@
-import type { User } from "@/contexts/AuthContext";
+import type { User } from "@/types/auth";
 import { BarChart3, Users, Music, TrendingUp, DollarSign } from "lucide-react";
 
 const stats = [

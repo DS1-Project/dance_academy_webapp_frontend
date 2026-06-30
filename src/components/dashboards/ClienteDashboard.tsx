@@ -1,4 +1,4 @@
-import type { User } from "@/contexts/AuthContext";
+import type { User } from "@/types/auth";
 import { useCart } from "@/contexts/CartContext";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";

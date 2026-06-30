@@ -1,33 +1,22 @@
 import { createContext, useContext, useState, ReactNode } from "react";
+import { loginRequest, registerRequest, mapBackendUserToUser } from "@/services/authService";
+import { getApiErrorMessage, tokenStorage } from "@/lib/api";
+import type { User, UserRole } from "@/types/auth";
 
-export type UserRole = "admin" | "director" | "profesor" | "cliente";
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  avatar?: string;
-}
-
-export const testUsers: User[] = [
-  { id: "1", name: "Admin Principal", email: "admin@danceflow.com", role: "admin" },
-  { id: "2", name: "Director Martínez", email: "director@danceflow.com", role: "director" },
-  { id: "3", name: "María García", email: "maria@danceflow.com", role: "profesor" },
-  { id: "4", name: "Carlos Fuentes", email: "carlos@danceflow.com", role: "profesor" },
-  { id: "5", name: "Laura Pérez", email: "laura@danceflow.com", role: "cliente" },
-  { id: "6", name: "Juan Torres", email: "juan@danceflow.com", role: "cliente" },
-];
-
-// All test users use password: "dance123"
-const TEST_PASSWORD = "dance123";
+export type { User, UserRole };
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => { success: boolean; error?: string };
-  register: (name: string, email: string, password: string) => { success: boolean; error?: string };
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    passwordConfirm: string
+  ) => Promise<{ success: boolean; error?: string; pendingApproval?: boolean }>;
   logout: () => void;
   isAuthenticated: boolean;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -37,42 +26,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem("danceflow_user");
     return saved ? JSON.parse(saved) : null;
   });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const login = (email: string, password: string) => {
-    if (password !== TEST_PASSWORD) {
-      return { success: false, error: "Contraseña incorrecta" };
+  const login = async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      const data = await loginRequest({
+        email,
+        password,
+        captcha_token: import.meta.env.VITE_CAPTCHA_DEV_TOKEN ?? "dev-bypass",
+      });
+
+      tokenStorage.setTokens(data.access, data.refresh);
+      const mappedUser = mapBackendUserToUser(data.user);
+      setUser(mappedUser);
+      localStorage.setItem("danceflow_user", JSON.stringify(mappedUser));
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: getApiErrorMessage(error, "Error al iniciar sesión") };
+    } finally {
+      setIsLoading(false);
     }
-    const found = testUsers.find((u) => u.email === email);
-    if (!found) {
-      return { success: false, error: "Usuario no encontrado" };
-    }
-    setUser(found);
-    localStorage.setItem("danceflow_user", JSON.stringify(found));
-    return { success: true };
   };
 
-  const register = (name: string, email: string, _password: string) => {
-    if (testUsers.find((u) => u.email === email)) {
-      return { success: false, error: "Este correo ya está registrado" };
+  const register = async (
+    name: string,
+    email: string,
+    password: string,
+    passwordConfirm: string
+  ) => {
+    setIsLoading(true);
+    try {
+      const [firstName, ...rest] = name.trim().split(/\s+/);
+      const lastName = rest.join(" ");
+
+      await registerRequest({
+        email,
+        password,
+        password_confirm: passwordConfirm,
+        first_name: firstName,
+        last_name: lastName,
+      });
+
+      return { success: true, pendingApproval: true };
+    } catch (error) {
+      return { success: false, error: getApiErrorMessage(error, "Error al registrarse") };
+    } finally {
+      setIsLoading(false);
     }
-    const newUser: User = {
-      id: Date.now().toString(),
-      name,
-      email,
-      role: "cliente",
-    };
-    setUser(newUser);
-    localStorage.setItem("danceflow_user", JSON.stringify(newUser));
-    return { success: true };
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem("danceflow_user");
+    tokenStorage.clear();
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider
+      value={{ user, login, register, logout, isAuthenticated: !!user, isLoading }}
+    >
       {children}
     </AuthContext.Provider>
   );

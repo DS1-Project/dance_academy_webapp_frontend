@@ -1,23 +1,30 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth, testUsers } from "@/contexts/AuthContext";
+import { useNavigate, Link, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { Eye, EyeOff, LogIn, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, LogIn, AlertCircle, Loader2, Clock } from "lucide-react";
+
+const PENDING_APPROVAL_MESSAGE =
+  "Tu cuenta está pendiente de aprobación. Un administrador debe autorizar tu acceso antes de que puedas ingresar a la plataforma.";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const { login } = useAuth();
+  const { login, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const infoMessage = (location.state as { message?: string })?.message;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    const result = login(email, password);
+
+    const result = await login(email, password);
+
     if (result.success) {
       navigate("/dashboard");
     } else {
@@ -25,12 +32,7 @@ const Login = () => {
     }
   };
 
-  const quickLogin = (userEmail: string) => {
-    setEmail(userEmail);
-    setPassword("dance123");
-    const result = login(userEmail, "dance123");
-    if (result.success) navigate("/dashboard");
-  };
+  const isPendingApprovalError = error.toLowerCase().includes("aprobada");
 
   return (
     <div className="min-h-screen">
@@ -43,27 +45,49 @@ const Login = () => {
           </div>
 
           <div className="bg-card rounded-3xl shadow-card p-6 md:p-8 mb-6">
+            {infoMessage && (
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-primary/10 text-primary text-sm mb-6">
+                <Clock className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>{infoMessage}</span>
+              </div>
+            )}
+
             {error && (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-destructive/10 text-destructive text-sm mb-6">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                {error}
+              <div
+                className={`flex items-start gap-2 p-3 rounded-xl text-sm mb-6 ${
+                  isPendingApprovalError
+                    ? "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                    : "bg-destructive/10 text-destructive"
+                }`}
+              >
+                {isPendingApprovalError ? (
+                  <Clock className="h-4 w-4 shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                )}
+                <span>{error}</span>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Correo electrónico</label>
+                <label className="label-caps text-xs text-muted-foreground mb-1.5 block">
+                  Correo electrónico
+                </label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="tu@email.com"
                   required
-                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  disabled={isLoading}
+                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                 />
               </div>
               <div>
-                <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Contraseña</label>
+                <label className="label-caps text-xs text-muted-foreground mb-1.5 block">
+                  Contraseña
+                </label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
@@ -71,7 +95,8 @@ const Login = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary pr-12"
+                    disabled={isLoading}
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary pr-12 disabled:opacity-60"
                   />
                   <button
                     type="button"
@@ -82,9 +107,13 @@ const Login = () => {
                   </button>
                 </div>
               </div>
-              <Button type="submit" className="w-full gap-2" size="lg">
-                <LogIn className="h-4 w-4" />
-                Iniciar Sesión
+              <Button type="submit" className="w-full gap-2" size="lg" disabled={isLoading}>
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <LogIn className="h-4 w-4" />
+                )}
+                {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
               </Button>
             </form>
 
@@ -96,30 +125,10 @@ const Login = () => {
             </p>
           </div>
 
-          {/* Quick login with test users */}
           <div className="bg-muted/50 rounded-3xl p-5">
-            <p className="label-caps text-xs text-muted-foreground mb-3">Usuarios de prueba (contraseña: dance123)</p>
-            <div className="grid grid-cols-1 gap-2">
-              {testUsers.map((u) => (
-                <button
-                  key={u.id}
-                  onClick={() => quickLogin(u.email)}
-                  className="flex items-center justify-between p-3 rounded-xl bg-card hover:shadow-card transition-all text-left active:scale-[0.98]"
-                >
-                  <div>
-                    <p className="text-sm font-semibold">{u.name}</p>
-                    <p className="text-xs text-muted-foreground">{u.email}</p>
-                  </div>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                    u.role === "admin" ? "bg-destructive/15 text-destructive" :
-                    u.role === "director" ? "bg-primary/15 text-primary" :
-                    u.role === "profesor" ? "bg-secondary/15 text-secondary" :
-                    "bg-accent/15 text-accent"
-                  }`}>
-                    {u.role}
-                  </span>
-                </button>
-              ))}
+            <div className="flex items-start gap-2 text-sm text-muted-foreground">
+              <Clock className="h-4 w-4 shrink-0 mt-0.5" />
+              <p>{PENDING_APPROVAL_MESSAGE}</p>
             </div>
           </div>
         </div>
