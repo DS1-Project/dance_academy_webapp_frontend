@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { UserPlus, AlertCircle } from "lucide-react";
+import { UserPlus, AlertCircle, Loader2, Clock } from "lucide-react";
 
 const Registro = () => {
   const [name, setName] = useState("");
@@ -12,23 +12,31 @@ const Registro = () => {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
-  const { register } = useAuth();
+  const { register, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres");
+
+    if (password.length < 8) {
+      setError("La contraseña debe tener al menos 8 caracteres");
       return;
     }
     if (password !== confirm) {
       setError("Las contraseñas no coinciden");
       return;
     }
-    const result = register(name, email, password);
+
+    const result = await register(name, email, password, confirm);
+
     if (result.success) {
-      navigate("/dashboard");
+      navigate("/login", {
+        state: {
+          message:
+            "¡Cuenta creada con éxito! Tu registro está en revisión. Un administrador debe aprobar tu acceso antes de que puedas iniciar sesión. Te notificaremos cuando esté listo.",
+        },
+      });
     } else {
       setError(result.error || "Error al registrarse");
     }
@@ -45,6 +53,14 @@ const Registro = () => {
           </div>
 
           <div className="bg-card rounded-3xl shadow-card p-6 md:p-8">
+            <div className="flex items-start gap-2 p-3 rounded-xl bg-primary/10 text-primary text-sm mb-6">
+              <Clock className="h-4 w-4 shrink-0 mt-0.5" />
+              <p>
+                Al registrarte, tu cuenta quedará pendiente de aprobación. Solo podrás ingresar
+                cuando un administrador autorice tu acceso.
+              </p>
+            </div>
+
             {error && (
               <div className="flex items-center gap-2 p-3 rounded-xl bg-destructive/10 text-destructive text-sm mb-6">
                 <AlertCircle className="h-4 w-4 shrink-0" />
@@ -54,24 +70,68 @@ const Registro = () => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Nombre completo</label>
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Tu nombre" required className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                <label className="label-caps text-xs text-muted-foreground mb-1.5 block">
+                  Nombre completo
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Tu nombre"
+                  required
+                  disabled={isLoading}
+                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+                />
               </div>
               <div>
-                <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Correo electrónico</label>
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@email.com" required className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                <label className="label-caps text-xs text-muted-foreground mb-1.5 block">
+                  Correo electrónico
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="tu@email.com"
+                  required
+                  disabled={isLoading}
+                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+                />
               </div>
               <div>
-                <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Contraseña</label>
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" required className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                <label className="label-caps text-xs text-muted-foreground mb-1.5 block">
+                  Contraseña
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Mínimo 8 caracteres"
+                  required
+                  disabled={isLoading}
+                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+                />
               </div>
               <div>
-                <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Confirmar contraseña</label>
-                <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Repite la contraseña" required className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                <label className="label-caps text-xs text-muted-foreground mb-1.5 block">
+                  Confirmar contraseña
+                </label>
+                <input
+                  type="password"
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  placeholder="Repite la contraseña"
+                  required
+                  disabled={isLoading}
+                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+                />
               </div>
-              <Button type="submit" className="w-full gap-2" size="lg">
-                <UserPlus className="h-4 w-4" />
-                Crear Cuenta
+              <Button type="submit" className="w-full gap-2" size="lg" disabled={isLoading}>
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <UserPlus className="h-4 w-4" />
+                )}
+                {isLoading ? "Creando cuenta..." : "Crear Cuenta"}
               </Button>
             </form>
 
