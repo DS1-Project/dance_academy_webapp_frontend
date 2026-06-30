@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(mappedUser);
       localStorage.setItem("danceflow_user", JSON.stringify(mappedUser));
 
-      return { success: true };
+      return { success: true, user: data.user };
     } catch (error) {
       return { success: false, error: getApiErrorMessage(error, "Error al iniciar sesión") };
     } finally {

@@ -13,6 +13,11 @@ import Registro from "./pages/Registro.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import Carrito from "./pages/Carrito.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import { AdminRoute } from "@/components/AdminRoute";
+import AdminDashboard from "./pages/admin/AdminDashboard.tsx";
+import UserManagement from "./pages/admin/UserManagement.tsx";
+import CourseConfig from "./pages/admin/CourseConfig.tsx";
+import CourseStatistics from "./pages/admin/CourseStatistics.tsx";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +36,38 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/registro" element={<Registro />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route
+                path="/admin"
+                element={
+                  <AdminRoute>
+                    <AdminDashboard />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/usuarios"
+                element={
+                  <AdminRoute>
+                    <UserManagement />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/cursos"
+                element={
+                  <AdminRoute>
+                    <CourseConfig />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/estadisticas"
+                element={
+                  <AdminRoute>
+                    <CourseStatistics />
+                  </AdminRoute>
+                }
+              />
               <Route path="/carrito" element={<Carrito />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
