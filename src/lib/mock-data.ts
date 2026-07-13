@@ -1,3 +1,5 @@
+import type { Review } from "@/types/reviews";
+
 export interface Choreography {
   id: string;
   songName: string;
@@ -12,6 +14,7 @@ export interface Choreography {
   reviewCount: number;
   salesCount: number;
   thumbnailColor: string;
+  reviews?: Review[];
 }
 
 export const genres = ["Salsa", "Merengue", "Bachata", "Pop", "Hip-Hop", "Reggaetón", "Cumbia", "Contemporáneo"];
@@ -33,6 +36,22 @@ export const choreographies: Choreography[] = [
     reviewCount: 127,
     salesCount: 892,
     thumbnailColor: "from-primary to-secondary",
+    reviews: [
+      {
+        id: "r-1",
+        userName: "Mariana",
+        comment: "Muy claro y divertido.",
+        rating: 5,
+        createdAt: "2026-06-20T10:00:00.000Z",
+      },
+      {
+        id: "r-2",
+        userName: "Luis",
+        comment: "Ideal para comenzar.",
+        rating: 4,
+        createdAt: "2026-06-22T14:30:00.000Z",
+      },
+    ],
   },
   {
     id: "2",
@@ -47,6 +66,15 @@ export const choreographies: Choreography[] = [
     reviewCount: 89,
     salesCount: 654,
     thumbnailColor: "from-secondary to-accent",
+    reviews: [
+      {
+        id: "r-3",
+        userName: "Sofía",
+        comment: "Los giros quedaron muy bien explicados.",
+        rating: 5,
+        createdAt: "2026-06-16T10:00:00.000Z",
+      },
+    ],
   },
   {
     id: "3",
@@ -61,6 +89,15 @@ export const choreographies: Choreography[] = [
     reviewCount: 203,
     salesCount: 1247,
     thumbnailColor: "from-primary to-orange-400",
+    reviews: [
+      {
+        id: "r-4",
+        userName: "Camila",
+        comment: "Muy buena introducción al ritmo.",
+        rating: 4,
+        createdAt: "2026-06-12T09:45:00.000Z",
+      },
+    ],
   },
   {
     id: "4",
