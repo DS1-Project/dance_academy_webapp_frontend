@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import Index from "./pages/Index.tsx";
 import Catalogo from "./pages/Catalogo.tsx";
+import CursoDetalle from "./pages/CursoDetalle.tsx";
 import Profesores from "./pages/Profesores.tsx";
 import Login from "./pages/Login.tsx";
 import Registro from "./pages/Registro.tsx";
@@ -34,6 +35,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/catalogo" element={<Catalogo />} />
+              <Route path="/curso/:id" element={<CursoDetalle />} />
               <Route path="/profesores" element={<Profesores />} />
               <Route path="/login" element={<Login />} />
               <Route path="/registro" element={<Registro />} />

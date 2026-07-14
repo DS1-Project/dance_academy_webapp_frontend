@@ -1,4 +1,11 @@
-import { firstError, required, validateEmail } from "@/lib/formValidation";
+import {
+  firstError,
+  required,
+  validateCardNumber,
+  validateCvv,
+  validateEmail,
+  validatePhone,
+} from "@/lib/formValidation";
 
 export interface BuyerDetails {
   name: string;
@@ -29,7 +36,7 @@ export function validateBuyerDetails(values: BuyerDetails): string | null {
   return firstError(
     required(values.name, "El nombre"),
     validateEmail(values.email),
-    required(values.phone, "El teléfono")
+    validatePhone(values.phone)
   );
 }
 
@@ -45,9 +52,9 @@ export function validateBillingDetails(values: BillingDetails): string | null {
 export function validatePaymentDetails(values: PaymentDetails): string | null {
   return firstError(
     required(values.method, "El método de pago"),
-    required(values.cardNumber, "El número de tarjeta"),
+    validateCardNumber(values.cardNumber),
     required(values.expiry, "La fecha de vencimiento"),
-    required(values.cvv, "El CVV")
+    validateCvv(values.cvv)
   );
 }
 

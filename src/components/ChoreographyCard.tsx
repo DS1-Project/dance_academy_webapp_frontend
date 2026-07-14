@@ -1,15 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Star, Play, Video, ShoppingCart, Check, MessageSquareText, Edit3, X } from "lucide-react";
+import { Star, Play, Video, ShoppingCart, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { useCart } from "@/contexts/CartContext";
-import { useAuth } from "@/contexts/AuthContext";
 import type { Choreography } from "@/lib/mock-data";
-import { createReview, updateReview } from "@/services/reviewService";
-import { ReviewStars } from "@/components/ReviewStars";
-import type { Review } from "@/types/reviews";
 
 interface ChoreographyCardProps {
   choreography: Choreography;
@@ -18,32 +11,21 @@ interface ChoreographyCardProps {
 
 export function ChoreographyCard({ choreography, featured = false }: ChoreographyCardProps) {
   const { items, addItem } = useCart();
-  const { user } = useAuth();
-  const { songName, genre, difficulty, mainTeacher, guestTeacher, price, videoCount, thumbnailColor } = choreography;
+  const {
+    id,
+    songName,
+    genre,
+    difficulty,
+    mainTeacher,
+    guestTeacher,
+    price,
+    videoCount,
+    thumbnailColor,
+    thumbnailUrl,
+    rating,
+    reviewCount,
+  } = choreography;
   const inCart = items.some((i) => i.choreography.id === choreography.id);
-  const [reviews, setReviews] = useState<Review[]>(() => choreography.reviews ?? []);
-  const [selectedRating, setSelectedRating] = useState(0);
-  const [comment, setComment] = useState("");
-  const [validationError, setValidationError] = useState<string | null>(null);
-  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showReviews, setShowReviews] = useState(false);
-  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
-  const [editRating, setEditRating] = useState(0);
-  const [editComment, setEditComment] = useState("");
-
-  useEffect(() => {
-    setReviews(choreography.reviews ?? []);
-  }, [choreography.id, choreography.reviews]);
-
-  const averageRating = useMemo(() => {
-    if (!reviews.length) {
-      return Number(choreography.rating.toFixed(1));
-    }
-
-    const sum = reviews.reduce((total, review) => total + review.rating, 0);
-    return Number((sum / reviews.length).toFixed(1));
-  }, [choreography.rating, reviews]);
 
   const difficultyColor = {
     Principiante: "bg-accent/15 text-accent",
@@ -51,116 +33,27 @@ export function ChoreographyCard({ choreography, featured = false }: Choreograph
     Avanzado: "bg-secondary/15 text-secondary",
   }[difficulty];
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const cleanedComment = comment.trim();
-
-    if (selectedRating < 1 || selectedRating > 5) {
-      setValidationError("La calificación debe estar entre 1 y 5 estrellas.");
-      setFeedbackMessage(null);
-      return;
-    }
-
-    if (!cleanedComment) {
-      setValidationError("Escribe un comentario para enviar la review.");
-      setFeedbackMessage(null);
-      return;
-    }
-
-    setValidationError(null);
-    setIsSubmitting(true);
-    setFeedbackMessage(null);
-
-    try {
-        const serverReview = await createReview({
-        choreographyId: choreography.id,
-        rating: selectedRating,
-        comment: cleanedComment,
-      });
-      const mergedReview: Review = {
-        id: serverReview.id,
-        userName: serverReview.userName,
-        comment: serverReview.comment,
-        rating: serverReview.rating,
-        createdAt: serverReview.createdAt,
-        choreographyId: serverReview.choreographyId,
-        isOwner: serverReview.isOwner,
-      };
-      setReviews((current) => [mergedReview, ...current.filter((review) => review.id !== mergedReview.id)]);
-      setComment("");
-      setSelectedRating(0);
-      setFeedbackMessage("Tu reseña se ha publicado correctamente y se muestra de inmediato.");
-    } catch (error) {
-      setComment("");
-      setSelectedRating(0);
-      setFeedbackMessage(error instanceof Error ? error.message : "No se pudo sincronizar con el backend.");
-    } finally {
-      setIsSubmitting(false);
-      setShowReviews(true);
-    }
-  };
-
-  const handleEditReview = (review: Review) => {
-    setEditingReviewId(review.id);
-    setEditRating(review.rating);
-    setEditComment(review.comment ?? "");
-    setFeedbackMessage(null);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingReviewId(null);
-    setEditRating(0);
-    setEditComment("");
-  };
-
-  const handleSaveEdit = async (reviewId: string) => {
-    if (editRating < 1 || editRating > 5) {
-      setValidationError("La calificación debe estar entre 1 y 5 estrellas.");
-      return;
-    }
-
-    if (!editComment.trim()) {
-      setValidationError("Escribe un comentario para guardar la review.");
-      return;
-    }
-
-    setValidationError(null);
-    setIsSubmitting(true);
-
-    try {
-      const updatedReview = await updateReview(reviewId, {
-        rating: editRating,
-        comment: editComment.trim(),
-      });
-
-      setReviews((current) =>
-        current.map((review) =>
-          review.id === reviewId
-            ? {
-                ...review,
-                rating: updatedReview.rating,
-                comment: updatedReview.comment,
-                createdAt: updatedReview.createdAt,
-              }
-            : review
-        )
-      );
-
-      setFeedbackMessage("Tu reseña se actualizó correctamente.");
-      handleCancelEdit();
-    } catch (error) {
-      setFeedbackMessage(error instanceof Error ? error.message : "No se pudo actualizar la review.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const displayRating = Number(rating.toFixed(1));
+  const displayReviews = reviewCount || choreography.reviews?.length || 0;
 
   return (
-    <div className={`group relative bg-card rounded-3xl overflow-hidden shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 ${featured ? "md:col-span-2 md:row-span-2" : ""}`}>
-      <div className="relative aspect-video overflow-hidden">
-        <div className={`absolute inset-0 bg-gradient-to-br ${thumbnailColor} opacity-90`} />
+    <div
+      className={`group relative bg-card rounded-3xl overflow-hidden shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 ${
+        featured ? "md:col-span-2 md:row-span-2" : ""
+      }`}
+    >
+      <Link to={`/curso/${id}`} className="block relative aspect-video overflow-hidden">
+        {thumbnailUrl ? (
+          <img src={thumbnailUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        ) : (
+          <div className={`absolute inset-0 bg-gradient-to-br ${thumbnailColor} opacity-90`} />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-foreground/55 via-foreground/10 to-transparent" />
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="font-display font-extrabold text-primary-foreground text-2xl md:text-3xl tracking-tight text-center px-4 drop-shadow-lg" style={{ lineHeight: 1 }}>
+          <span
+            className="font-display font-extrabold text-primary-foreground text-2xl md:text-3xl tracking-tight text-center px-4 drop-shadow-lg"
+            style={{ lineHeight: 1 }}
+          >
             {songName}
           </span>
         </div>
@@ -173,168 +66,63 @@ export function ChoreographyCard({ choreography, featured = false }: Choreograph
           <Video className="h-3.5 w-3.5" />
           {videoCount}
         </div>
-      </div>
+      </Link>
 
       <div className="p-4 md:p-5">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground text-xs font-semibold">{genre}</span>
-            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${difficultyColor}`}>{difficulty}</span>
+            <span className="px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground text-xs font-semibold">
+              {genre}
+            </span>
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${difficultyColor}`}>
+              {difficulty}
+            </span>
           </div>
           <div className="flex items-center gap-1 shrink-0">
             <Star className="h-4 w-4 fill-primary text-primary" />
-            <span className="text-sm font-bold tabular-nums">{averageRating.toFixed(1)}</span>
-            <span className="text-xs text-muted-foreground">({reviews.length})</span>
+            <span className="text-sm font-bold tabular-nums">{displayRating.toFixed(1)}</span>
+            <span className="text-xs text-muted-foreground">({displayReviews})</span>
           </div>
         </div>
 
-        <h3 className="text-base font-bold mb-1 line-clamp-1">{songName}</h3>
+        <Link to={`/curso/${id}`} className="block hover:text-primary transition-colors">
+          <h3 className="text-base font-bold mb-1 line-clamp-1">{songName}</h3>
+        </Link>
         <p className="text-sm text-muted-foreground mb-3">
-          {mainTeacher}{guestTeacher ? ` · Invitado: ${guestTeacher}` : ""}
+          {mainTeacher}
+          {guestTeacher ? ` · Invitado: ${guestTeacher}` : ""}
         </p>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <span className="text-xl font-display font-extrabold">${price}</span>
-          {inCart ? (
-            <Button size="sm" variant="outline" className="gap-1.5 pointer-events-none border-accent text-accent">
-              <Check className="h-4 w-4" />
-              En carrito
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" asChild>
+              <Link to={`/curso/${id}`}>Ver curso</Link>
             </Button>
-          ) : (
-            <Button size="sm" className="gap-1.5" onClick={() => addItem(choreography)}>
-              <ShoppingCart className="h-4 w-4" />
-              Agregar
-            </Button>
-          )}
-        </div>
-
-        <div className="mt-4 border-t border-border/70 pt-4">
-          <button
-            type="button"
-            onClick={() => setShowReviews((current) => !current)}
-            className="flex w-full items-center justify-between text-left text-sm font-semibold"
-          >
-            <span className="flex items-center gap-2">
-              <MessageSquareText className="h-4 w-4 text-primary" />
-              Reviews y comentarios
-            </span>
-            <span className="text-xs text-muted-foreground">{reviews.length} opiniones</span>
-          </button>
-
-          {showReviews && (
-            <div className="mt-3 space-y-3">
-{user ? (
-                  <form onSubmit={handleSubmit} className="rounded-2xl border border-border/70 bg-muted/40 p-3 space-y-3">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <Label htmlFor={`review-comment-${choreography.id}`} className="text-xs uppercase tracking-[0.2em]">
-                          Tu comentario
-                        </Label>
-                        <p className="text-xs text-muted-foreground">Selecciona de 1 a 5 estrellas y deja tu feedback.</p>
-                      </div>
-                      <ReviewStars value={selectedRating} onChange={setSelectedRating} />
-                    </div>
-
-                    <Textarea
-                      id={`review-comment-${choreography.id}`}
-                      placeholder="Cuéntanos qué te pareció este video..."
-                      value={comment}
-                      onChange={(event) => setComment(event.target.value)}
-                      className="min-h-[90px]"
-                    />
-
-                    {validationError ? <p className="text-sm text-destructive">{validationError}</p> : null}
-                    {feedbackMessage ? (
-                      <p className={`text-sm ${feedbackMessage.includes("correctamente") ? "text-emerald-600" : "text-destructive"}`}>
-                        {feedbackMessage}
-                      </p>
-                    ) : null}
-
-                    <div className="flex items-center justify-end">
-                      <Button type="submit" size="sm" disabled={isSubmitting}>
-                        {isSubmitting ? "Enviando..." : "Enviar review"}
-                      </Button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="rounded-2xl border border-border/70 bg-muted/40 p-4 text-sm text-muted-foreground">
-                    <p className="mb-3">Debes iniciar sesión para publicar una reseña.</p>
-                    <Link to="/login">
-                      <Button size="sm">Iniciar sesión</Button>
-                    </Link>
-                  </div>
-                )}
-
-              <div className="space-y-2">
-                {reviews.length > 0 ? (
-                  reviews.map((review) => (
-                    <div key={review.id} className="rounded-2xl border border-border/70 bg-background/70 p-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold">{review.userName}</p>
-                          <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                            {new Date(review.createdAt).toLocaleDateString("es-ES", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            })}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: 5 }, (_, index) => (
-                            <Star key={`${review.id}-${index}`} className={`h-3.5 w-3.5 ${index < review.rating ? "fill-primary text-primary" : "text-muted-foreground/50"}`} />
-                          ))}
-                        </div>
-                      </div>
-
-                      {review.isOwner && editingReviewId !== review.id ? (
-                        <div className="mt-3 flex items-center gap-2">
-                          <Button size="sm" variant="outline" className="gap-2" onClick={() => handleEditReview(review)}>
-                            <Edit3 className="h-4 w-4" /> Editar
-                          </Button>
-                        </div>
-                      ) : null}
-
-                      {editingReviewId === review.id ? (
-                        <div className="mt-3 space-y-3 rounded-2xl border border-border/70 bg-muted/40 p-3">
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                              <Label htmlFor={`edit-review-comment-${review.id}`} className="text-xs uppercase tracking-[0.2em]">
-                                Editar reseña
-                              </Label>
-                              <p className="text-xs text-muted-foreground">Ajusta tu calificación o comentario.</p>
-                            </div>
-                            <ReviewStars value={editRating} onChange={setEditRating} />
-                          </div>
-                          <Textarea
-                            id={`edit-review-comment-${review.id}`}
-                            value={editComment}
-                            onChange={(event) => setEditComment(event.target.value)}
-                            className="min-h-[90px]"
-                          />
-                          {validationError ? <p className="text-sm text-destructive">{validationError}</p> : null}
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Button size="sm" onClick={() => void handleSaveEdit(review.id)} disabled={isSubmitting}>
-                              Guardar cambios
-                            </Button>
-                            <Button size="sm" variant="ghost" onClick={handleCancelEdit} disabled={isSubmitting}>
-                              <X className="mr-1 h-4 w-4" /> Cancelar
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="mt-2 text-sm text-muted-foreground">{review.comment}</p>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-border/70 p-3 text-sm text-muted-foreground">
-                    Aún no hay reviews para esta coreografía.
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+            {inCart ? (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 pointer-events-none border-accent text-accent"
+              >
+                <Check className="h-4 w-4" />
+                En carrito
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                className="gap-1.5"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  addItem(choreography);
+                }}
+              >
+                <ShoppingCart className="h-4 w-4" />
+                Agregar
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>
