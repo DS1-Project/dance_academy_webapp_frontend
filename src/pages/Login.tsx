@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Eye, EyeOff, LogIn, AlertCircle, Loader2, Clock } from "lucide-react";
+import ReCAPTCHA from "react-google-recaptcha";
+
 
 const PENDING_APPROVAL_MESSAGE =
   "Tu cuenta está pendiente de aprobación. Un administrador debe autorizar tu acceso antes de que puedas ingresar a la plataforma.";
@@ -41,6 +43,11 @@ const Login = () => {
   };
 
   const isPendingApprovalError = error.toLowerCase().includes("aprobada");
+
+
+  const onChange = () =>{
+    console.log("Usuario verificado!");
+  };
 
   return (
     <div className="min-h-screen">
@@ -115,6 +122,12 @@ const Login = () => {
                   </button>
                 </div>
               </div>
+
+              <ReCAPTCHA 
+                sitekey="6LfIKlItAAAAADuaamFvCgnFpHUvGruN2egJsNX6" 
+                onChange={onChange}
+              />
+
               <Button type="submit" className="w-full gap-2" size="lg" disabled={isLoading}>
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
