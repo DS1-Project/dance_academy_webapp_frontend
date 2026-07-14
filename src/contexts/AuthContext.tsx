@@ -23,7 +23,7 @@ interface AuthContextType {
     email: string,
     password: string,
     passwordConfirm: string,
-    role?: BackendRole,
+    role?: "client" | "teacher",
     captchaToken?: string
   ) => Promise<{ success: boolean; error?: string; pendingApproval?: boolean }>;
   updateProfile: (payload: {
@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string,
     password: string,
     passwordConfirm: string,
-    role: BackendRole = "client",
+    role: "client" | "teacher" = "client",
     captchaToken = ""
   ) => {
     setIsLoading(true);

@@ -44,7 +44,7 @@ export interface RegisterPayload {
   password_confirm: string;
   first_name: string;
   last_name: string;
-  role?: BackendRole;
+  role?: "client" | "teacher";
   captcha_token: string;
 }
 

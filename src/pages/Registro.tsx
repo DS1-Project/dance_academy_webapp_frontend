@@ -6,8 +6,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { UserPlus, AlertCircle, Loader2 } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
-import { REGISTER_ROLE_OPTIONS, roleRequiresApproval } from "@/lib/userRoleOptions";
-import type { BackendRole } from "@/types/auth";
+import { REGISTER_ROLE_OPTIONS, roleRequiresApproval, type RegisterRole } from "@/lib/userRoleOptions";
 
 const RECAPTCHA_SITE_KEY =
   import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LfIKlItAAAAADuaamFvCgnFpHUvGruN2egJsNX6";
@@ -17,7 +16,7 @@ const Registro = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [role, setRole] = useState<BackendRole>("client");
+  const [role, setRole] = useState<RegisterRole>("client");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [error, setError] = useState("");
   const { register, isLoading } = useAuth();
@@ -91,7 +90,7 @@ const Registro = () => {
                 </label>
                 <select
                   value={role}
-                  onChange={(e) => setRole(e.target.value as BackendRole)}
+                  onChange={(e) => setRole(e.target.value as RegisterRole)}
                   disabled={isLoading}
                   className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                 >
