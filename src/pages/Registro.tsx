@@ -6,10 +6,16 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { UserPlus, AlertCircle, Loader2 } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
-import { REGISTER_ROLE_OPTIONS, roleRequiresApproval, type RegisterRole } from "@/lib/userRoleOptions";
+import { roleRequiresApproval, type RegisterRole } from "@/lib/userRoleOptions";
 
 const RECAPTCHA_SITE_KEY =
   import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LfIKlItAAAAADuaamFvCgnFpHUvGruN2egJsNX6";
+
+/** Solo estos dos roles en el registro público. */
+const REGISTER_ROLE_OPTIONS: { value: RegisterRole; label: string }[] = [
+  { value: "client", label: "Cliente" },
+  { value: "teacher", label: "Profesor" },
+];
 
 const Registro = () => {
   const [name, setName] = useState("");
