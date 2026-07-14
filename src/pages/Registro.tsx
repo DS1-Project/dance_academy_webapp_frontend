@@ -4,13 +4,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { UserPlus, AlertCircle, Loader2, Clock } from "lucide-react";
+import { UserPlus, AlertCircle, Loader2 } from "lucide-react";
+import { REGISTER_ROLE_OPTIONS, roleRequiresApproval } from "@/lib/userRoleOptions";
 
 const Registro = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [role, setRole] = useState<"client" | "teacher">("client");
   const [error, setError] = useState("");
   const { register, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -28,12 +30,15 @@ const Registro = () => {
       return;
     }
 
-    const result = await register(name, email, password, confirm);
+    const result = await register(name, email, password, confirm, role);
 
     if (result.success) {
+      const needsApproval = result.pendingApproval || roleRequiresApproval(role);
       navigate("/login", {
         state: {
-          message: "¡Cuenta creada con éxito! Ya puedes iniciar sesión con tu correo y contraseña.",
+          message: needsApproval
+            ? "¡Cuenta creada! Tu registro como profesor está pendiente de aprobación. Un administrador debe autorizar tu acceso antes de iniciar sesión."
+            : "¡Cuenta creada con éxito! Ya puedes iniciar sesión con tu correo y contraseña.",
         },
       });
     } else {
@@ -52,14 +57,6 @@ const Registro = () => {
           </div>
 
           <div className="bg-card rounded-3xl shadow-card p-6 md:p-8">
-            <div className="flex items-start gap-2 p-3 rounded-xl bg-primary/10 text-primary text-sm mb-6">
-              <Clock className="h-4 w-4 shrink-0 mt-0.5" />
-              <p>
-                Al registrarte como cliente podrás ingresar de inmediato. No necesitas aprobación
-                de un administrador.
-              </p>
-            </div>
-
             {error && (
               <div className="flex items-center gap-2 p-3 rounded-xl bg-destructive/10 text-destructive text-sm mb-6">
                 <AlertCircle className="h-4 w-4 shrink-0" />
@@ -68,6 +65,23 @@ const Registro = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="label-caps text-xs text-muted-foreground mb-1.5 block">
+                  Tipo de usuario
+                </label>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as "client" | "teacher")}
+                  disabled={isLoading}
+                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+                >
+                  {REGISTER_ROLE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label className="label-caps text-xs text-muted-foreground mb-1.5 block">
                   Nombre completo

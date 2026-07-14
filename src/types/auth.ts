@@ -44,6 +44,7 @@ export interface RegisterPayload {
   password_confirm: string;
   first_name: string;
   last_name: string;
+  role?: "client" | "teacher";
 }
 
 export type ApiErrorResponse = {
