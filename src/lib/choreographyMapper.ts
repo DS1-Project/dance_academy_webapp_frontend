@@ -85,3 +85,52 @@ export function estimateCompletionRate(
   if (denominator <= 0 || plays <= 0) return 0;
   return Math.min(100, Math.round((plays / denominator) * 100));
 }
+
+export interface ChoreographyStatRow {
+  id: string;
+  title: string;
+  mainTeacher: string;
+  danceStyle: string;
+  totalViews: number;
+  totalSales: number;
+  averageRating: number;
+  estimatedPlaybackMinutes: number;
+  estimatedCompletionRate: number;
+}
+
+function averageVideoDurationSeconds(videos: BackendChoreography["videos"]): number {
+  if (!videos?.length) return 0;
+  const total = videos.reduce((sum, v) => sum + (v.duration_seconds || 0), 0);
+  return total / videos.length;
+}
+
+/** Construye filas de estadísticas por coreografía a partir de datos ya cargados del backend. */
+export function buildChoreographyStatRows(items: BackendChoreography[]): ChoreographyStatRow[] {
+  return items.map((item) => {
+    const totalViews = item.stats?.total_views ?? 0;
+    const totalSales = item.stats?.total_sales_count ?? 0;
+    const averageRatingRaw = item.stats?.average_rating ? Number(item.stats.average_rating) : 0;
+    const videoCount = item.video_count ?? item.videos?.length ?? 0;
+    const avgDurationSeconds = averageVideoDurationSeconds(item.videos);
+
+    return {
+      id: item.id,
+      title: item.title,
+      mainTeacher: teacherName(item.main_teacher as TeacherBrief | string),
+      danceStyle: danceStyleName(item.dance_style),
+      totalViews,
+      totalSales,
+      averageRating: Number.isFinite(averageRatingRaw) ? averageRatingRaw : 0,
+      estimatedPlaybackMinutes: estimatePlaybackMinutes(totalViews, avgDurationSeconds),
+      estimatedCompletionRate: estimateCompletionRate(totalViews, totalSales, videoCount),
+    };
+  });
+}
+
+export function rankByMostSold(rows: ChoreographyStatRow[], limit = 5): ChoreographyStatRow[] {
+  return [...rows].sort((a, b) => b.totalSales - a.totalSales).slice(0, limit);
+}
+
+export function rankByLeastSold(rows: ChoreographyStatRow[], limit = 5): ChoreographyStatRow[] {
+  return [...rows].sort((a, b) => a.totalSales - b.totalSales).slice(0, limit);
+}
