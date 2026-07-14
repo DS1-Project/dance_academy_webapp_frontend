@@ -29,14 +29,6 @@ const adminCards = [
     accent: "text-accent",
     bg: "bg-accent/10",
   },
-  {
-    title: "Moderación de Reviews",
-    description: "Aprueba o rechaza reseñas enviadas por los usuarios.",
-    icon: BarChart3,
-    to: "/admin/reviews",
-    accent: "text-primary",
-    bg: "bg-primary/10",
-  },
 ];
 
 const AdminDashboard = () => {

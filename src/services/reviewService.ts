@@ -14,10 +14,7 @@ export interface ReviewResponse {
   comment: string;
   rating: number;
   createdAt: string;
-  reviewStatus: "pending" | "approved" | "rejected";
-  isPublic: boolean;
-  moderation_note?: string | null;
-  reviewed_at?: string | null;
+  isOwner: boolean;
 }
 
 export async function createReview(payload: CreateReviewPayload): Promise<ReviewResponse> {
@@ -33,14 +30,20 @@ export async function createReview(payload: CreateReviewPayload): Promise<Review
   }
 }
 
-export async function getReviews(choreographyId?: string, includeAll = false): Promise<ReviewResponse[]> {
+export async function updateReview(reviewId: string, payload: Pick<CreateReviewPayload, 'rating' | 'comment'>): Promise<ReviewResponse> {
+  try {
+    const { data } = await api.patch<ReviewResponse>(`/api/reviews/${reviewId}/`, payload);
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "No se pudo actualizar la review"));
+  }
+}
+
+export async function getReviews(choreographyId?: string): Promise<ReviewResponse[]> {
   try {
     const params = new URLSearchParams();
     if (choreographyId) {
       params.set("choreographyId", choreographyId);
-    }
-    if (includeAll) {
-      params.set("status", "pending");
     }
     const query = params.toString();
     const { data } = await api.get<ReviewResponse[]>(`/api/reviews/${query ? `?${query}` : ""}`);
@@ -48,14 +51,4 @@ export async function getReviews(choreographyId?: string, includeAll = false): P
   } catch (error) {
     throw new Error(getApiErrorMessage(error, "No se pudieron cargar las reviews"));
   }
-}
-
-export async function approveReview(reviewId: string): Promise<ReviewResponse> {
-  const { data } = await api.post<ReviewResponse>(`/api/reviews/${reviewId}/approve/`);
-  return data;
-}
-
-export async function rejectReview(reviewId: string): Promise<ReviewResponse> {
-  const { data } = await api.post<ReviewResponse>(`/api/reviews/${reviewId}/reject/`);
-  return data;
 }
