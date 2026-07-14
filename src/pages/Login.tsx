@@ -6,15 +6,19 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Eye, EyeOff, LogIn, AlertCircle, Loader2, Clock } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
-
+import { required, validateEmail } from "@/lib/formValidation";
 
 const PENDING_APPROVAL_MESSAGE =
   "Tu cuenta está pendiente de aprobación. Un administrador debe autorizar tu acceso antes de que puedas ingresar a la plataforma.";
+
+const RECAPTCHA_SITE_KEY =
+  import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LfIKlItAAAAADuaamFvCgnFpHUvGruN2egJsNX6";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [error, setError] = useState("");
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -25,13 +29,28 @@ const Login = () => {
     e.preventDefault();
     setError("");
 
-    const result = await login(email, password);
+    const emailError = validateEmail(email);
+    const passwordError = required(password, "La contraseña");
+    if (emailError || passwordError) {
+      setError(emailError || passwordError || "Completa los campos.");
+      return;
+    }
+
+    const token =
+      captchaToken ||
+      (import.meta.env.DEV
+        ? import.meta.env.VITE_CAPTCHA_DEV_TOKEN || "dev-bypass"
+        : null);
+
+    if (!token) {
+      setError("Completa el captcha antes de continuar.");
+      return;
+    }
+
+    const result = await login(email, password, token);
 
     if (result.success) {
-      // Extraemos el rol del usuario desde el resultado del login
-      const role = result.user?.role; 
-      
-      // Evaluamos si el rol es 'admin' o 'director'
+      const role = result.user?.role;
       if (role === "admin" || role === "director") {
         navigate("/admin");
       } else {
@@ -43,11 +62,6 @@ const Login = () => {
   };
 
   const isPendingApprovalError = error.toLowerCase().includes("aprobada");
-
-
-  const onChange = () =>{
-    console.log("Usuario verificado!");
-  };
 
   return (
     <div className="min-h-screen">
@@ -123,9 +137,10 @@ const Login = () => {
                 </div>
               </div>
 
-              <ReCAPTCHA 
-                sitekey="6LfIKlItAAAAADuaamFvCgnFpHUvGruN2egJsNX6" 
-                onChange={onChange}
+              <ReCAPTCHA
+                sitekey={RECAPTCHA_SITE_KEY}
+                onChange={(token) => setCaptchaToken(token)}
+                onExpired={() => setCaptchaToken(null)}
               />
 
               <Button type="submit" className="w-full gap-2" size="lg" disabled={isLoading}>

@@ -12,6 +12,7 @@ import Login from "./pages/Login.tsx";
 import Registro from "./pages/Registro.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import Carrito from "./pages/Carrito.tsx";
+import Perfil from "./pages/Perfil.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import { AdminRoute } from "@/components/AdminRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard.tsx";
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/registro" element={<Registro />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/perfil" element={<Perfil />} />
               <Route
                 path="/admin"
                 element={
