@@ -247,11 +247,12 @@ const Carrito = () => {
                   />
                 </div>
                 <div>
-                  <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Teléfono</label>
+                  <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Teléfono *</label>
                   <input
                     value={buyer.phone}
                     onChange={(e) => setBuyer((b) => ({ ...b, phone: e.target.value }))}
                     placeholder="+57 300 123 4567"
+                    required
                     className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
@@ -274,11 +275,12 @@ const Carrito = () => {
               </div>
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Documento de identidad</label>
+                  <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Documento de identidad *</label>
                   <input
                     value={billing.documentId}
                     onChange={(e) => setBilling((b) => ({ ...b, documentId: e.target.value }))}
                     placeholder="1.234.567.890"
+                    required
                     className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
@@ -288,6 +290,7 @@ const Carrito = () => {
                     value={billing.address}
                     onChange={(e) => setBilling((b) => ({ ...b, address: e.target.value }))}
                     placeholder="Calle 123 #45-67"
+                    required
                     className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
@@ -298,6 +301,7 @@ const Carrito = () => {
                       value={billing.city}
                       onChange={(e) => setBilling((b) => ({ ...b, city: e.target.value }))}
                       placeholder="Bogotá"
+                      required
                       className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
@@ -306,6 +310,7 @@ const Carrito = () => {
                     <input
                       value={billing.country}
                       onChange={(e) => setBilling((b) => ({ ...b, country: e.target.value }))}
+                      required
                       className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>

@@ -26,11 +26,16 @@ export interface CreateSalePayload {
 }
 
 export function validateBuyerDetails(values: BuyerDetails): string | null {
-  return firstError(required(values.name, "El nombre"), validateEmail(values.email));
+  return firstError(
+    required(values.name, "El nombre"),
+    validateEmail(values.email),
+    required(values.phone, "El teléfono")
+  );
 }
 
 export function validateBillingDetails(values: BillingDetails): string | null {
   return firstError(
+    required(values.documentId, "El documento"),
     required(values.address, "La dirección"),
     required(values.city, "La ciudad"),
     required(values.country, "El país")

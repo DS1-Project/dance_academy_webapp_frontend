@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ChoreographyCard } from "@/components/ChoreographyCard";
@@ -9,11 +10,29 @@ import { Button } from "@/components/ui/button";
 
 const Catalogo = () => {
   const { items, styles, loading, error, reload } = useCatalogChoreographies();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
   const [selectedTeacher, setSelectedTeacher] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    const genreFromUrl = searchParams.get("genre");
+    if (genreFromUrl) {
+      setSelectedGenre(genreFromUrl);
+      setShowFilters(true);
+    }
+  }, [searchParams]);
+
+  const selectGenre = (genre: string | null) => {
+    setSelectedGenre(genre);
+    if (genre) {
+      setSearchParams({ genre });
+    } else {
+      setSearchParams({});
+    }
+  };
 
   const genres = useMemo(
     () =>
@@ -54,7 +73,7 @@ const Catalogo = () => {
   const hasFilters = selectedGenre || selectedDifficulty || selectedTeacher;
 
   const clearFilters = () => {
-    setSelectedGenre(null);
+    selectGenre(null);
     setSelectedDifficulty(null);
     setSelectedTeacher(null);
     setSearch("");
@@ -106,7 +125,7 @@ const Catalogo = () => {
                     {genres.map((g) => (
                       <button
                         key={g}
-                        onClick={() => setSelectedGenre(selectedGenre === g ? null : g)}
+                        onClick={() => selectGenre(selectedGenre === g ? null : g)}
                         className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-[0.95] ${
                           selectedGenre === g
                             ? "bg-gradient-brand text-primary-foreground"

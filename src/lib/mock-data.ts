@@ -18,7 +18,7 @@ export interface Choreography {
   reviews?: Review[];
 }
 
-export const genres = ["Salsa", "Merengue", "Bachata", "Pop", "Hip-Hop", "Reggaetón", "Cumbia", "Contemporáneo"];
+export const genres = ["Salsa", "Bachata", "Merengue", "Hip-Hop", "Reggaetón"];
 export const difficulties = ["Principiante", "Intermedio", "Avanzado"] as const;
 export const teachers = ["María García", "Carlos Fuentes", "Ana Rodríguez", "David Chen", "Lucía Morales"];
 
