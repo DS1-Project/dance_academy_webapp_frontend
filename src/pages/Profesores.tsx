@@ -1,82 +1,20 @@
+import { useMemo } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Star, Music, Award } from "lucide-react";
-import { choreographies } from "@/lib/mock-data";
+import { Star, Music, Award, Loader2 } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
-
-interface TeacherProfile {
-  name: string;
-  specialty: string;
-  bio: string;
-  experience: string;
-  genres: string[];
-  rating: number;
-  students: number;
-  gradientFrom: string;
-  gradientTo: string;
-}
-
-const teacherProfiles: TeacherProfile[] = [
-  {
-    name: "María García",
-    specialty: "Bachata & Reggaetón",
-    bio: "Bailarina profesional con más de 12 años de experiencia internacional. Ha competido en campeonatos de bachata en República Dominicana y España.",
-    experience: "12 años",
-    genres: ["Bachata", "Reggaetón", "Salsa"],
-    rating: 4.9,
-    students: 1315,
-    gradientFrom: "from-secondary",
-    gradientTo: "to-rose-400",
-  },
-  {
-    name: "Carlos Fuentes",
-    specialty: "Merengue & Salsa",
-    bio: "Instructor certificado y coreógrafo. Fundador de la escuela 'Ritmo Latino' en Medellín. Especialista en ritmos caribeños tradicionales.",
-    experience: "15 años",
-    genres: ["Merengue", "Salsa", "Cumbia"],
-    rating: 4.7,
-    students: 1625,
-    gradientFrom: "from-primary",
-    gradientTo: "to-amber-400",
-  },
-  {
-    name: "Ana Rodríguez",
-    specialty: "Salsa & Contemporáneo",
-    bio: "Formada en la Escuela Nacional de Danza de Cuba. Combina técnica clásica con expresión moderna. Jurado en múltiples competencias nacionales.",
-    experience: "10 años",
-    genres: ["Salsa", "Contemporáneo"],
-    rating: 4.9,
-    students: 943,
-    gradientFrom: "from-violet-500",
-    gradientTo: "to-secondary",
-  },
-  {
-    name: "David Chen",
-    specialty: "Hip-Hop & Pop Dance",
-    bio: "Ex bailarín de backup para artistas internacionales. Especialista en coreografías urbanas y freestyle. Creador de contenido con +500K seguidores.",
-    experience: "8 años",
-    genres: ["Hip-Hop", "Pop"],
-    rating: 4.7,
-    students: 1356,
-    gradientFrom: "from-fuchsia-600",
-    gradientTo: "to-primary",
-  },
-  {
-    name: "Lucía Morales",
-    specialty: "Cumbia & Folclor",
-    bio: "Investigadora y difusora de danzas folclóricas latinoamericanas. Ha llevado la cumbia colombiana a escenarios en Europa y Asia.",
-    experience: "14 años",
-    genres: ["Cumbia", "Salsa", "Merengue"],
-    rating: 4.6,
-    students: 472,
-    gradientFrom: "from-amber-500",
-    gradientTo: "to-primary",
-  },
-];
+import { useCatalogChoreographies } from "@/hooks/useCatalogChoreographies";
+import { deriveTeachersFromChoreographies } from "@/lib/teacherDirectory";
 
 const Profesores = () => {
   const ref = useScrollReveal();
+  const { backendItems, loading, error, reload } = useCatalogChoreographies();
+
+  const teacherProfiles = useMemo(
+    () => deriveTeachersFromChoreographies(backendItems),
+    [backendItems]
+  );
 
   return (
     <div className="min-h-screen">
@@ -91,14 +29,29 @@ const Profesores = () => {
             </p>
           </div>
 
-          <div ref={ref} className="space-y-6">
-            {teacherProfiles.map((teacher) => {
-              const teacherChoreographies = choreographies.filter(
-                (c) => c.mainTeacher === teacher.name || c.guestTeacher === teacher.name
-              );
-              return (
+          {loading ? (
+            <div className="flex items-center justify-center gap-2 py-20 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span>Cargando profesores...</span>
+            </div>
+          ) : error ? (
+            <div className="text-center py-20">
+              <p className="text-4xl mb-4">⚠️</p>
+              <h3 className="text-lg font-bold mb-2">No se pudieron cargar los profesores</h3>
+              <p className="text-muted-foreground text-sm mb-4">{error}</p>
+              <Button variant="outline" size="sm" onClick={reload}>
+                Reintentar
+              </Button>
+            </div>
+          ) : teacherProfiles.length === 0 ? (
+            <div className="text-center py-20 text-muted-foreground">
+              <p className="text-sm">Aún no hay profesores con coreografías publicadas.</p>
+            </div>
+          ) : (
+            <div ref={ref} className="space-y-6">
+              {teacherProfiles.map((teacher) => (
                 <div
-                  key={teacher.name}
+                  key={teacher.id}
                   className="bg-card rounded-3xl shadow-card overflow-hidden hover:shadow-card-hover transition-all duration-300"
                 >
                   <div className="flex flex-col md:flex-row">
@@ -116,10 +69,12 @@ const Profesores = () => {
                           <h3 className="text-xl md:text-2xl font-display font-extrabold">{teacher.name}</h3>
                           <p className="text-sm text-primary font-semibold">{teacher.specialty}</p>
                         </div>
-                        <div className="flex items-center gap-1 bg-primary/10 px-3 py-1 rounded-full">
-                          <Star className="h-4 w-4 fill-primary text-primary" />
-                          <span className="text-sm font-bold tabular-nums">{teacher.rating}</span>
-                        </div>
+                        {teacher.rating > 0 && (
+                          <div className="flex items-center gap-1 bg-primary/10 px-3 py-1 rounded-full">
+                            <Star className="h-4 w-4 fill-primary text-primary" />
+                            <span className="text-sm font-bold tabular-nums">{teacher.rating}</span>
+                          </div>
+                        )}
                       </div>
 
                       <p className="text-sm text-muted-foreground mb-4 max-w-xl" style={{ textWrap: "pretty" }}>
@@ -137,24 +92,28 @@ const Profesores = () => {
 
                       {/* Stats row */}
                       <div className="flex flex-wrap items-center gap-6 text-sm">
-                        <div className="flex items-center gap-1.5">
-                          <Award className="h-4 w-4 text-primary" />
-                          <span className="text-muted-foreground">{teacher.experience} exp.</span>
-                        </div>
+                        {teacher.experience !== "—" && (
+                          <div className="flex items-center gap-1.5">
+                            <Award className="h-4 w-4 text-primary" />
+                            <span className="text-muted-foreground">{teacher.experience} exp.</span>
+                          </div>
+                        )}
                         <div className="flex items-center gap-1.5">
                           <Music className="h-4 w-4 text-secondary" />
-                          <span className="text-muted-foreground">{teacherChoreographies.length} coreografías</span>
+                          <span className="text-muted-foreground">{teacher.choreographyCount} coreografías</span>
                         </div>
-                        <div className="text-muted-foreground">
-                          {teacher.students.toLocaleString()} alumnos
-                        </div>
+                        {teacher.students > 0 && (
+                          <div className="text-muted-foreground">
+                            {teacher.students.toLocaleString()} alumnos
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
       <Footer />

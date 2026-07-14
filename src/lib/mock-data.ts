@@ -14,6 +14,7 @@ export interface Choreography {
   reviewCount: number;
   salesCount: number;
   thumbnailColor: string;
+  createdAt?: string;
   reviews?: Review[];
 }
 
