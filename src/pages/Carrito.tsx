@@ -17,6 +17,7 @@ import {
   type PaymentDetails,
 } from "@/lib/checkoutForm";
 import { onlyDigits } from "@/lib/formValidation";
+import { canPurchaseCourses } from "@/lib/purchaseAccess";
 import { checkoutSale, createSale } from "@/services/salesService";
 import {
   Trash2,
@@ -59,6 +60,32 @@ const Carrito = () => {
     expiry: "12/28",
     cvv: "123",
   });
+
+  if (!canPurchaseCourses(user?.role)) {
+    return (
+      <div className="min-h-screen">
+        <Navbar />
+        <main className="pt-24 md:pt-28 pb-20">
+          <div className="container max-w-lg mx-auto text-center">
+            <div className="bg-card rounded-3xl shadow-card p-8 md:p-12 space-y-4">
+              <CartIcon className="h-10 w-10 mx-auto text-muted-foreground" />
+              <h2 className="text-2xl md:text-3xl">Carrito no disponible</h2>
+              <p className="text-muted-foreground">
+                Tu rol puede explorar el catálogo, pero no realizar compras.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                <Button variant="outline" onClick={() => navigate("/catalogo")}>
+                  Ver catálogo
+                </Button>
+                <Button onClick={() => navigate("/dashboard")}>Ir al dashboard</Button>
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (step === "confirmacion") {
     return (

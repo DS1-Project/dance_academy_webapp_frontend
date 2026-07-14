@@ -21,6 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { getApiErrorMessage } from "@/lib/api";
 import { mapBackendChoreographyToCard } from "@/lib/choreographyMapper";
+import { canPurchaseCourses } from "@/lib/purchaseAccess";
 import {
   getChoreographyDetail,
   listChoreographyVideos,
@@ -58,6 +59,7 @@ const CursoDetalle = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const { addItem, isInCart } = useCart();
+  const canPurchase = canPurchaseCourses(user?.role);
 
   const [course, setCourse] = useState<BackendChoreography | null>(null);
   const [videos, setVideos] = useState<BackendVideoClip[]>([]);
@@ -127,6 +129,7 @@ const CursoDetalle = () => {
 
   async function handleBuy() {
     if (!card) return;
+    if (!canPurchase) return;
     if (!isAuthenticated) {
       navigate("/login", { state: { message: "Inicia sesión para comprar este curso." } });
       return;
@@ -315,7 +318,17 @@ const CursoDetalle = () => {
                       permanente tras la compra
                     </p>
 
-                    {isPurchased ? (
+                    {!canPurchase ? (
+                      <div className="rounded-2xl border border-border bg-background/70 p-4 space-y-2">
+                        <p className="text-sm font-semibold">Solo consulta</p>
+                        <p className="text-sm text-muted-foreground">
+                          Con tu rol puedes explorar el catálogo, pero no comprar cursos.
+                        </p>
+                        <Button variant="outline" className="w-full" onClick={() => navigate("/dashboard")}>
+                          Ir al dashboard
+                        </Button>
+                      </div>
+                    ) : isPurchased ? (
                       <Button className="w-full" onClick={() => navigate("/dashboard")}>
                         Ya lo tienes — Ir al dashboard
                       </Button>
@@ -331,7 +344,7 @@ const CursoDetalle = () => {
                       </Button>
                     )}
 
-                    {!isPurchased && (
+                    {canPurchase && !isPurchased && (
                       <Button
                         variant="outline"
                         className="w-full"

@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { canPurchaseCourses } from "@/lib/purchaseAccess";
 import type { Choreography } from "@/lib/mock-data";
 
 export interface CartItem {
@@ -20,11 +22,18 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
 
   const isInCart = (id: string) => items.some((i) => i.choreography.id === id);
 
   const addItem = (choreography: Choreography): boolean => {
+    if (!canPurchaseCourses(user?.role)) {
+      toast.error("Compra no disponible", {
+        description: "Tu rol puede explorar el catálogo, pero no realizar compras.",
+      });
+      return false;
+    }
     const exists = items.some((i) => i.choreography.id === choreography.id);
     if (exists) {
       toast.error("Ya está en tu carrito", {
