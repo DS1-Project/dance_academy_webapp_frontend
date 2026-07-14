@@ -18,6 +18,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard.tsx";
 import UserManagement from "./pages/admin/UserManagement.tsx";
 import CourseConfig from "./pages/admin/CourseConfig.tsx";
 import CourseStatistics from "./pages/admin/CourseStatistics.tsx";
+import ReviewModeration from "./pages/admin/ReviewModeration.tsx";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +66,14 @@ const App = () => (
                 element={
                   <AdminRoute>
                     <CourseStatistics />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/reviews"
+                element={
+                  <AdminRoute>
+                    <ReviewModeration />
                   </AdminRoute>
                 }
               />

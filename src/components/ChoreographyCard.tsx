@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Choreography } from "@/lib/mock-data";
 import { createReview } from "@/services/reviewService";
 import { ReviewStars } from "@/components/ReviewStars";
@@ -16,6 +17,7 @@ interface ChoreographyCardProps {
 
 export function ChoreographyCard({ choreography, featured = false }: ChoreographyCardProps) {
   const { items, addItem } = useCart();
+  const { user } = useAuth();
   const { songName, genre, difficulty, mainTeacher, guestTeacher, price, videoCount, thumbnailColor } = choreography;
   const inCart = items.some((i) => i.choreography.id === choreography.id);
   const [reviews, setReviews] = useState<Review[]>(() => choreography.reviews ?? []);
@@ -25,10 +27,24 @@ export function ChoreographyCard({ choreography, featured = false }: Choreograph
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
+  const [reviewStates, setReviewStates] = useState<Record<string, string>>(() => ({}));
 
   useEffect(() => {
     setReviews(choreography.reviews ?? []);
   }, [choreography.id, choreography.reviews]);
+
+  useEffect(() => {
+    if (!reviews.length) {
+      return;
+    }
+
+    const nextState = reviews.reduce<Record<string, string>>((accumulator, review) => {
+      accumulator[review.id] = review.reviewStatus ?? "approved";
+      return accumulator;
+    }, {});
+
+    setReviewStates(nextState);
+  }, [reviews]);
 
   const averageRating = useMemo(() => {
     if (!reviews.length) {
@@ -65,32 +81,30 @@ export function ChoreographyCard({ choreography, featured = false }: Choreograph
     setIsSubmitting(true);
     setFeedbackMessage(null);
 
-    const localReview: Review = {
-      id: `${choreography.id}-${Date.now()}`,
-      userName: "Tú",
-      comment: cleanedComment,
-      rating: selectedRating,
-      createdAt: new Date().toISOString(),
-    };
-
     try {
-      const serverReview = await createReview({ rating: selectedRating, comment: cleanedComment });
+      const serverReview = await createReview({
+        choreographyId: choreography.id,
+        rating: selectedRating,
+        comment: cleanedComment,
+      });
       const mergedReview: Review = {
-        id: serverReview.id ?? localReview.id,
-        userName: serverReview.userName || localReview.userName,
-        comment: serverReview.comment || cleanedComment,
-        rating: serverReview.rating || selectedRating,
-        createdAt: serverReview.createdAt || localReview.createdAt,
+        id: serverReview.id,
+        userName: serverReview.userName,
+        comment: serverReview.comment,
+        rating: serverReview.rating,
+        createdAt: serverReview.createdAt,
+        reviewStatus: serverReview.reviewStatus,
+        isPublic: serverReview.isPublic,
       };
+      setReviewStates((current) => ({ ...current, [mergedReview.id]: mergedReview.reviewStatus ?? "pending" }));
       setReviews((current) => [mergedReview, ...current.filter((review) => review.id !== mergedReview.id)]);
       setComment("");
       setSelectedRating(0);
-      setFeedbackMessage("Review enviada correctamente.");
+      setFeedbackMessage("Tu reseña ha sido enviada para revisión y está pendiente de aprobación por un administrador.");
     } catch (error) {
-      setReviews((current) => [localReview, ...current.filter((review) => review.id !== localReview.id)]);
       setComment("");
       setSelectedRating(0);
-      setFeedbackMessage(error instanceof Error ? error.message : "No se pudo sincronizar con el backend; la review quedó registrada en la vista local.");
+      setFeedbackMessage(error instanceof Error ? error.message : "No se pudo sincronizar con el backend.");
     } finally {
       setIsSubmitting(false);
       setShowReviews(true);
@@ -200,19 +214,44 @@ export function ChoreographyCard({ choreography, featured = false }: Choreograph
 
               <div className="space-y-2">
                 {reviews.length > 0 ? (
-                  reviews.map((review) => (
-                    <div key={review.id} className="rounded-2xl border border-border/70 bg-background/70 p-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold">{review.userName}</p>
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: 5 }, (_, index) => (
-                            <Star key={`${review.id}-${index}`} className={`h-3.5 w-3.5 ${index < review.rating ? "fill-primary text-primary" : "text-muted-foreground/50"}`} />
-                          ))}
+                  reviews
+                    .filter((review) => {
+                      const isModerationAllowed = user?.role === "admin" || user?.role === "director";
+                      return isModerationAllowed || review.reviewStatus === "approved" || review.reviewStatus === undefined;
+                    })
+                    .map((review) => (
+                      <div key={review.id} className="rounded-2xl border border-border/70 bg-background/70 p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold">{review.userName}</p>
+                            <div className="mt-1 flex flex-wrap items-center gap-2">
+                              {user?.role === "admin" || user?.role === "director" ? (
+                                <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${review.reviewStatus === "pending" ? "border-amber-300 bg-amber-50 text-amber-700" : review.reviewStatus === "rejected" ? "border-rose-300 bg-rose-50 text-rose-700" : "border-emerald-300 bg-emerald-50 text-emerald-700"}`}>
+                                  {review.reviewStatus === "pending"
+                                    ? "Pendiente de revisión"
+                                    : review.reviewStatus === "rejected"
+                                      ? "Rechazada"
+                                      : "Aprobada"}
+                                </span>
+                              ) : null}
+                              <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                                {new Date(review.createdAt).toLocaleDateString("es-ES", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {Array.from({ length: 5 }, (_, index) => (
+                              <Star key={`${review.id}-${index}`} className={`h-3.5 w-3.5 ${index < review.rating ? "fill-primary text-primary" : "text-muted-foreground/50"}`} />
+                            ))}
+                          </div>
                         </div>
+                        <p className="mt-2 text-sm text-muted-foreground">{review.comment}</p>
                       </div>
-                      <p className="mt-1 text-sm text-muted-foreground">{review.comment}</p>
-                    </div>
-                  ))
+                    ))
                 ) : (
                   <div className="rounded-2xl border border-dashed border-border/70 p-3 text-sm text-muted-foreground">
                     Aún no hay reviews para esta coreografía.

@@ -4,8 +4,10 @@ import type { ApiErrorResponse } from "@/types/auth";
 const ACCESS_TOKEN_KEY = "danceflow_access_token";
 const REFRESH_TOKEN_KEY = "danceflow_refresh_token";
 
+const resolvedApiBaseUrl = (import.meta.env.VITE_API_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: resolvedApiBaseUrl,
   headers: {
     "Content-Type": "application/json",
   },
@@ -38,7 +40,7 @@ api.interceptors.response.use(
       if (refresh) {
         try {
           const { data } = await axios.post<{ access: string }>(
-            `${import.meta.env.VITE_API_URL}/api/auth/token/refresh/`,
+            `${resolvedApiBaseUrl}/api/auth/token/refresh/`,
             { refresh }
           );
           localStorage.setItem(ACCESS_TOKEN_KEY, data.access);
