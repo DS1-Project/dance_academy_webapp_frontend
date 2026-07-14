@@ -7,9 +7,12 @@ import { Footer } from "@/components/Footer";
 import { Eye, EyeOff, LogIn, AlertCircle, Loader2, Clock } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
 import { required, validateEmail } from "@/lib/formValidation";
-
-const PENDING_APPROVAL_MESSAGE =
-  "Tu cuenta está pendiente de aprobación. Un administrador debe autorizar tu acceso antes de que puedas ingresar a la plataforma.";
+import {
+  LOGIN_ROLE_OPTIONS,
+  matchesSelectedRole,
+  type SelectableLoginRole,
+} from "@/lib/userRoleOptions";
+import type { BackendRole } from "@/types/auth";
 
 const RECAPTCHA_SITE_KEY =
   import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LfIKlItAAAAADuaamFvCgnFpHUvGruN2egJsNX6";
@@ -17,10 +20,11 @@ const RECAPTCHA_SITE_KEY =
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [selectedRole, setSelectedRole] = useState<SelectableLoginRole>("client");
   const [showPassword, setShowPassword] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const { login, isLoading } = useAuth();
+  const { login, logout, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const infoMessage = (location.state as { message?: string })?.message;
@@ -50,7 +54,15 @@ const Login = () => {
     const result = await login(email, password, token);
 
     if (result.success) {
-      const role = result.user?.role;
+      const role = result.user?.role as BackendRole | undefined;
+      if (!matchesSelectedRole(selectedRole, role)) {
+        logout();
+        setError(
+          "El tipo de usuario seleccionado no coincide con esta cuenta. Elige el rol correcto e inténtalo de nuevo."
+        );
+        return;
+      }
+
       if (role === "admin" || role === "director") {
         navigate("/admin");
       } else {
@@ -73,7 +85,7 @@ const Login = () => {
             <p className="text-muted-foreground">Accede a tu cuenta de DanceFlow</p>
           </div>
 
-          <div className="bg-card rounded-3xl shadow-card p-6 md:p-8 mb-6">
+          <div className="bg-card rounded-3xl shadow-card p-6 md:p-8">
             {infoMessage && (
               <div className="flex items-start gap-2 p-3 rounded-xl bg-primary/10 text-primary text-sm mb-6">
                 <Clock className="h-4 w-4 shrink-0 mt-0.5" />
@@ -99,6 +111,23 @@ const Login = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="label-caps text-xs text-muted-foreground mb-1.5 block">
+                  Tipo de usuario
+                </label>
+                <select
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value as SelectableLoginRole)}
+                  disabled={isLoading}
+                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+                >
+                  {LOGIN_ROLE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label className="label-caps text-xs text-muted-foreground mb-1.5 block">
                   Correo electrónico
@@ -159,13 +188,6 @@ const Login = () => {
                 Regístrate
               </Link>
             </p>
-          </div>
-
-          <div className="bg-muted/50 rounded-3xl p-5">
-            <div className="flex items-start gap-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4 shrink-0 mt-0.5" />
-              <p>{PENDING_APPROVAL_MESSAGE}</p>
-            </div>
           </div>
         </div>
       </main>

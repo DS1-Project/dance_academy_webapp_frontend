@@ -22,7 +22,8 @@ interface AuthContextType {
     name: string,
     email: string,
     password: string,
-    passwordConfirm: string
+    passwordConfirm: string,
+    role?: "client" | "teacher"
   ) => Promise<{ success: boolean; error?: string; pendingApproval?: boolean }>;
   updateProfile: (payload: {
     firstName: string;
@@ -73,7 +74,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     name: string,
     email: string,
     password: string,
-    passwordConfirm: string
+    passwordConfirm: string,
+    role: "client" | "teacher" = "client"
   ) => {
     setIsLoading(true);
     try {
@@ -86,9 +88,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password_confirm: passwordConfirm,
         first_name: firstName,
         last_name: lastName,
+        role,
       });
 
-      return { success: true, pendingApproval: true };
+      return { success: true, pendingApproval: role === "teacher" };
     } catch (error) {
       return { success: false, error: getApiErrorMessage(error, "Error al registrarse") };
     } finally {
