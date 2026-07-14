@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
 import { Star, Play, Video, ShoppingCart, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
+import { canPurchaseCourses } from "@/lib/purchaseAccess";
 import type { Choreography } from "@/lib/mock-data";
 
 interface ChoreographyCardProps {
@@ -10,7 +12,9 @@ interface ChoreographyCardProps {
 }
 
 export function ChoreographyCard({ choreography, featured = false }: ChoreographyCardProps) {
+  const { user } = useAuth();
   const { items, addItem } = useCart();
+  const canPurchase = canPurchaseCourses(user?.role);
   const {
     id,
     songName,
@@ -97,34 +101,40 @@ export function ChoreographyCard({ choreography, featured = false }: Choreograph
           <p className="text-2xl font-semibold tabular-nums tracking-tight">
             ${Number(price).toFixed(2)}
           </p>
-          <div className="grid grid-cols-2 gap-2">
+          {canPurchase ? (
+            <div className="grid grid-cols-2 gap-2">
+              <Button size="sm" variant="outline" className="w-full" asChild>
+                <Link to={`/curso/${id}`}>Ver curso</Link>
+              </Button>
+              {inCart ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full gap-1.5 pointer-events-none border-accent text-accent"
+                >
+                  <Check className="h-4 w-4" />
+                  En carrito
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  className="w-full gap-1.5"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    addItem(choreography);
+                  }}
+                >
+                  <ShoppingCart className="h-4 w-4" />
+                  Agregar
+                </Button>
+              )}
+            </div>
+          ) : (
             <Button size="sm" variant="outline" className="w-full" asChild>
               <Link to={`/curso/${id}`}>Ver curso</Link>
             </Button>
-            {inCart ? (
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-full gap-1.5 pointer-events-none border-accent text-accent"
-              >
-                <Check className="h-4 w-4" />
-                En carrito
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                className="w-full gap-1.5"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  addItem(choreography);
-                }}
-              >
-                <ShoppingCart className="h-4 w-4" />
-                Agregar
-              </Button>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </article>
