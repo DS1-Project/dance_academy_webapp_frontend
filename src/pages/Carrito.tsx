@@ -5,16 +5,59 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Trash2, ShoppingCart as CartIcon, ArrowRight, CheckCircle2, CreditCard, FileText, User } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { getApiErrorMessage } from "@/lib/api";
+import {
+  buildCreateSalePayload,
+  validateBillingDetails,
+  validateBuyerDetails,
+  validatePaymentDetails,
+  type BillingDetails,
+  type BuyerDetails,
+  type PaymentDetails,
+} from "@/lib/checkoutForm";
+import { checkoutSale, createSale } from "@/services/salesService";
+import {
+  Trash2,
+  ShoppingCart as CartIcon,
+  ArrowRight,
+  CheckCircle2,
+  CreditCard,
+  FileText,
+  User,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
 
 type Step = "carrito" | "datos" | "facturacion" | "pago" | "confirmacion";
+
+const paymentMethods = ["Tarjeta de Crédito", "Tarjeta Débito", "PSE"];
 
 const Carrito = () => {
   const { items, removeItem, clearCart, total } = useCart();
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("carrito");
-  const [paymentMethod, setPaymentMethod] = useState<string>("");
+  const [stepError, setStepError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const [buyer, setBuyer] = useState<BuyerDetails>({
+    name: user?.name ?? "",
+    email: user?.email ?? "",
+    phone: "",
+  });
+  const [billing, setBilling] = useState<BillingDetails>({
+    documentId: "",
+    address: "",
+    city: "",
+    country: "Colombia",
+  });
+  const [payment, setPayment] = useState<PaymentDetails>({
+    method: "",
+    cardNumber: "4111111111111111",
+    expiry: "12/28",
+    cvv: "123",
+  });
 
   if (step === "confirmacion") {
     return (
@@ -31,10 +74,10 @@ const Carrito = () => {
                 Tu pago ha sido procesado. Ya puedes acceder a tus coreografías.
               </p>
               <div className="space-y-3">
-                <Button className="w-full" size="lg" onClick={() => { clearCart(); navigate("/dashboard"); }}>
+                <Button className="w-full" size="lg" onClick={() => navigate("/dashboard")}>
                   Ir a Mis Coreografías
                 </Button>
-                <Button variant="outline" className="w-full" size="lg" onClick={() => { clearCart(); navigate("/catalogo"); }}>
+                <Button variant="outline" className="w-full" size="lg" onClick={() => navigate("/catalogo")}>
                   Seguir Explorando
                 </Button>
               </div>
@@ -44,6 +87,58 @@ const Carrito = () => {
         <Footer />
       </div>
     );
+  }
+
+  function goToDatos() {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+    setStepError(null);
+    setStep("datos");
+  }
+
+  function goToFacturacion() {
+    const error = validateBuyerDetails(buyer);
+    if (error) {
+      setStepError(error);
+      return;
+    }
+    setStepError(null);
+    setStep("facturacion");
+  }
+
+  function goToPago() {
+    const error = validateBillingDetails(billing);
+    if (error) {
+      setStepError(error);
+      return;
+    }
+    setStepError(null);
+    setStep("pago");
+  }
+
+  async function handlePay() {
+    const error = validatePaymentDetails(payment);
+    if (error) {
+      setStepError(error);
+      return;
+    }
+    setStepError(null);
+    setIsProcessing(true);
+    try {
+      const choreographyIds = items.map((item) => item.choreography.id);
+      const sale = await createSale(buildCreateSalePayload(choreographyIds, billing));
+      await checkoutSale(sale.id, true);
+      clearCart();
+      setStep("confirmacion");
+    } catch (err) {
+      const message = getApiErrorMessage(err, "No se pudo procesar el pago");
+      setStepError(message);
+      toast({ title: "Error al procesar el pago", description: message, variant: "destructive" });
+    } finally {
+      setIsProcessing(false);
+    }
   }
 
   return (
@@ -68,6 +163,13 @@ const Carrito = () => {
               </div>
             ))}
           </div>
+
+          {stepError && (
+            <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 text-destructive text-sm mb-6">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>{stepError}</span>
+            </div>
+          )}
 
           {/* Step: Carrito */}
           {step === "carrito" && (
@@ -109,10 +211,7 @@ const Carrito = () => {
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" onClick={clearCart}>Vaciar</Button>
-                      <Button size="default" className="gap-1" onClick={() => {
-                        if (!isAuthenticated) { navigate("/login"); return; }
-                        setStep("datos");
-                      }}>
+                      <Button size="default" className="gap-1" onClick={goToDatos}>
                         Continuar <ArrowRight className="h-4 w-4" />
                       </Button>
                     </div>
@@ -131,21 +230,35 @@ const Carrito = () => {
               </div>
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Nombre</label>
-                  <input defaultValue={user?.name || ""} className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                  <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Nombre *</label>
+                  <input
+                    value={buyer.name}
+                    onChange={(e) => setBuyer((b) => ({ ...b, name: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
                 </div>
                 <div>
-                  <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Correo</label>
-                  <input defaultValue={user?.email || ""} className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                  <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Correo *</label>
+                  <input
+                    type="email"
+                    value={buyer.email}
+                    onChange={(e) => setBuyer((b) => ({ ...b, email: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
                 </div>
                 <div>
                   <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Teléfono</label>
-                  <input placeholder="+57 300 123 4567" className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                  <input
+                    value={buyer.phone}
+                    onChange={(e) => setBuyer((b) => ({ ...b, phone: e.target.value }))}
+                    placeholder="+57 300 123 4567"
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
                 </div>
               </div>
               <div className="flex gap-3">
                 <Button variant="outline" onClick={() => setStep("carrito")}>Atrás</Button>
-                <Button className="flex-1 gap-1" onClick={() => setStep("facturacion")}>
+                <Button className="flex-1 gap-1" onClick={goToFacturacion}>
                   Continuar <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -162,26 +275,45 @@ const Carrito = () => {
               <div className="space-y-4 mb-6">
                 <div>
                   <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Documento de identidad</label>
-                  <input placeholder="1.234.567.890" className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                  <input
+                    value={billing.documentId}
+                    onChange={(e) => setBilling((b) => ({ ...b, documentId: e.target.value }))}
+                    placeholder="1.234.567.890"
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
                 </div>
                 <div>
-                  <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Dirección</label>
-                  <input placeholder="Calle 123 #45-67" className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                  <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Dirección *</label>
+                  <input
+                    value={billing.address}
+                    onChange={(e) => setBilling((b) => ({ ...b, address: e.target.value }))}
+                    placeholder="Calle 123 #45-67"
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Ciudad</label>
-                    <input placeholder="Bogotá" className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                    <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Ciudad *</label>
+                    <input
+                      value={billing.city}
+                      onChange={(e) => setBilling((b) => ({ ...b, city: e.target.value }))}
+                      placeholder="Bogotá"
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
                   </div>
                   <div>
-                    <label className="label-caps text-xs text-muted-foreground mb-1.5 block">País</label>
-                    <input defaultValue="Colombia" className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                    <label className="label-caps text-xs text-muted-foreground mb-1.5 block">País *</label>
+                    <input
+                      value={billing.country}
+                      onChange={(e) => setBilling((b) => ({ ...b, country: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
                   </div>
                 </div>
               </div>
               <div className="flex gap-3">
                 <Button variant="outline" onClick={() => setStep("datos")}>Atrás</Button>
-                <Button className="flex-1 gap-1" onClick={() => setStep("pago")}>
+                <Button className="flex-1 gap-1" onClick={goToPago}>
                   Continuar <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -196,12 +328,13 @@ const Carrito = () => {
                 <h3 className="font-bold">Forma de Pago</h3>
               </div>
               <div className="space-y-3 mb-6">
-                {["Tarjeta de Crédito", "Tarjeta Débito", "PSE"].map((method) => (
+                {paymentMethods.map((method) => (
                   <button
                     key={method}
-                    onClick={() => setPaymentMethod(method)}
-                    className={`w-full p-4 rounded-xl border-2 text-left text-sm font-semibold transition-all active:scale-[0.98] ${
-                      paymentMethod === method ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                    onClick={() => setPayment((p) => ({ ...p, method }))}
+                    disabled={isProcessing}
+                    className={`w-full p-4 rounded-xl border-2 text-left text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-60 ${
+                      payment.method === method ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
                     }`}
                   >
                     {method}
@@ -209,14 +342,34 @@ const Carrito = () => {
                 ))}
               </div>
 
-              {paymentMethod && (
+              {payment.method && (
                 <div className="bg-muted/50 rounded-xl p-4 mb-6">
-                  <p className="text-xs text-muted-foreground mb-3">(Simulación de pago)</p>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    (Simulación de pago — datos precargados de prueba)
+                  </p>
                   <div className="space-y-3">
-                    <input placeholder="Número de tarjeta" className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                    <input
+                      value={payment.cardNumber}
+                      onChange={(e) => setPayment((p) => ({ ...p, cardNumber: e.target.value }))}
+                      placeholder="Número de tarjeta"
+                      disabled={isProcessing}
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+                    />
                     <div className="grid grid-cols-2 gap-3">
-                      <input placeholder="MM/AA" className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                      <input placeholder="CVV" className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                      <input
+                        value={payment.expiry}
+                        onChange={(e) => setPayment((p) => ({ ...p, expiry: e.target.value }))}
+                        placeholder="MM/AA"
+                        disabled={isProcessing}
+                        className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+                      />
+                      <input
+                        value={payment.cvv}
+                        onChange={(e) => setPayment((p) => ({ ...p, cvv: e.target.value }))}
+                        placeholder="CVV"
+                        disabled={isProcessing}
+                        className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+                      />
                     </div>
                   </div>
                 </div>
@@ -238,8 +391,14 @@ const Carrito = () => {
               </div>
 
               <div className="flex gap-3">
-                <Button variant="outline" onClick={() => setStep("facturacion")}>Atrás</Button>
-                <Button className="flex-1 gap-1" size="lg" disabled={!paymentMethod} onClick={() => setStep("confirmacion")}>
+                <Button variant="outline" onClick={() => setStep("facturacion")} disabled={isProcessing}>Atrás</Button>
+                <Button
+                  className="flex-1 gap-2"
+                  size="lg"
+                  disabled={!payment.method || isProcessing}
+                  onClick={handlePay}
+                >
+                  {isProcessing && <Loader2 className="h-4 w-4 animate-spin" />}
                   Pagar ${(total * 1.19).toFixed(2)}
                 </Button>
               </div>
