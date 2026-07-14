@@ -6,6 +6,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Eye, EyeOff, LogIn, AlertCircle, Loader2, Clock } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
+import { dashboardHomePath } from "@/lib/dashboardHome";
 import { required, validateEmail } from "@/lib/formValidation";
 
 const RECAPTCHA_SITE_KEY =
@@ -47,12 +48,7 @@ const Login = () => {
     const result = await login(email, password, token);
 
     if (result.success) {
-      const role = result.user?.role;
-      if (role === "admin" || role === "director") {
-        navigate("/admin");
-      } else {
-        navigate("/dashboard");
-      }
+      navigate(dashboardHomePath(result.user?.role));
     } else {
       setError(result.error || "Error al iniciar sesión");
     }

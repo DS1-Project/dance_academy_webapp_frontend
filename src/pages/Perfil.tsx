@@ -4,6 +4,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { dashboardHomePath } from "@/lib/dashboardHome";
 import { firstError, required } from "@/lib/formValidation";
 import { AlertCircle, ArrowLeft, Loader2, UserRound } from "lucide-react";
 
@@ -59,7 +60,7 @@ const Perfil = () => {
       <main className="pt-24 md:pt-28 pb-20">
         <div className="container max-w-lg mx-auto">
           <Link
-            to="/dashboard"
+            to={dashboardHomePath(user.role)}
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
