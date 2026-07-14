@@ -50,6 +50,41 @@ export function validateHttpUrl(url: string, label = "La URL"): string | null {
   }
 }
 
+/** Keep only digit characters (for phone/card inputs). */
+export function onlyDigits(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
+export function validateDigitsOnly(
+  value: string,
+  label: string,
+  minLength: number,
+  maxLength: number
+): string | null {
+  const empty = required(value, label);
+  if (empty) return empty;
+  if (!/^\d+$/.test(value.trim())) {
+    return `${label} solo puede contener números.`;
+  }
+  const digits = value.trim();
+  if (digits.length < minLength || digits.length > maxLength) {
+    return `${label} debe tener entre ${minLength} y ${maxLength} dígitos.`;
+  }
+  return null;
+}
+
+export function validatePhone(phone: string): string | null {
+  return validateDigitsOnly(phone, "El teléfono", 7, 15);
+}
+
+export function validateCardNumber(cardNumber: string): string | null {
+  return validateDigitsOnly(cardNumber, "El número de tarjeta", 13, 19);
+}
+
+export function validateCvv(cvv: string): string | null {
+  return validateDigitsOnly(cvv, "El CVV", 3, 4);
+}
+
 export function firstError(...errors: Array<string | null | undefined>): string | null {
   return errors.find((e): e is string => Boolean(e)) ?? null;
 }

@@ -16,6 +16,7 @@ import {
   type BuyerDetails,
   type PaymentDetails,
 } from "@/lib/checkoutForm";
+import { onlyDigits } from "@/lib/formValidation";
 import { checkoutSale, createSale } from "@/services/salesService";
 import {
   Trash2,
@@ -187,8 +188,12 @@ const Carrito = () => {
                     {items.map((item) => (
                       <div key={item.choreography.id} className="flex items-center justify-between p-4 bg-card rounded-2xl shadow-card">
                         <div className="flex items-center gap-3">
-                          <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${item.choreography.thumbnailColor} flex items-center justify-center shrink-0`}>
-                            <span className="text-primary-foreground font-display font-extrabold text-xs text-center leading-tight px-1">{item.choreography.songName.slice(0, 8)}</span>
+                          <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${item.choreography.thumbnailColor} flex items-center justify-center shrink-0 overflow-hidden`}>
+                            {item.choreography.thumbnailUrl ? (
+                              <img src={item.choreography.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                            ) : (
+                              <span className="text-primary-foreground font-display font-extrabold text-xs text-center leading-tight px-1">{item.choreography.songName.slice(0, 8)}</span>
+                            )}
                           </div>
                           <div>
                             <p className="font-semibold text-sm">{item.choreography.songName}</p>
@@ -249,9 +254,14 @@ const Carrito = () => {
                 <div>
                   <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Teléfono *</label>
                   <input
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel"
                     value={buyer.phone}
-                    onChange={(e) => setBuyer((b) => ({ ...b, phone: e.target.value }))}
-                    placeholder="+57 300 123 4567"
+                    onChange={(e) =>
+                      setBuyer((b) => ({ ...b, phone: onlyDigits(e.target.value).slice(0, 15) }))
+                    }
+                    placeholder="3001234567"
                     required
                     className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
@@ -354,8 +364,16 @@ const Carrito = () => {
                   </p>
                   <div className="space-y-3">
                     <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="cc-number"
                       value={payment.cardNumber}
-                      onChange={(e) => setPayment((p) => ({ ...p, cardNumber: e.target.value }))}
+                      onChange={(e) =>
+                        setPayment((p) => ({
+                          ...p,
+                          cardNumber: onlyDigits(e.target.value).slice(0, 19),
+                        }))
+                      }
                       placeholder="Número de tarjeta"
                       disabled={isProcessing}
                       className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
@@ -369,8 +387,13 @@ const Carrito = () => {
                         className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                       />
                       <input
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="cc-csc"
                         value={payment.cvv}
-                        onChange={(e) => setPayment((p) => ({ ...p, cvv: e.target.value }))}
+                        onChange={(e) =>
+                          setPayment((p) => ({ ...p, cvv: onlyDigits(e.target.value).slice(0, 4) }))
+                        }
                         placeholder="CVV"
                         disabled={isProcessing}
                         className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"

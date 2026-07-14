@@ -23,6 +23,7 @@ import {
   type VideoFormRow,
 } from "@/lib/choreographyForm";
 import { pickNextSampleVideoUrl } from "@/lib/sampleVideoUrls";
+import { thumbnailForGenre } from "@/lib/genreMedia";
 import {
   addChoreographyVideo,
   createChoreography,
@@ -166,7 +167,8 @@ export function ChoreographyFormDialog({
   }
 
   function applySampleUrl(rowId: string, index: number) {
-    const sample = pickNextSampleVideoUrl(index);
+    const styleName = danceStyles.find((s) => s.id === formValues.danceStyleId)?.name;
+    const sample = pickNextSampleVideoUrl(index, styleName);
     updateVideoRow(rowId, { videoUrl: sample.url });
     toast({ title: "URL de ejemplo aplicada", description: sample.label });
   }
@@ -335,7 +337,18 @@ export function ChoreographyFormDialog({
               <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Estilo de baile *</label>
               <select
                 value={formValues.danceStyleId}
-                onChange={(e) => setFormValues((f) => ({ ...f, danceStyleId: e.target.value }))}
+                onChange={(e) => {
+                  const danceStyleId = e.target.value;
+                  const styleName = danceStyles.find((s) => s.id === danceStyleId)?.name;
+                  setFormValues((f) => ({
+                    ...f,
+                    danceStyleId,
+                    thumbnailUrl:
+                      f.thumbnailUrl.trim() || !styleName
+                        ? f.thumbnailUrl
+                        : thumbnailForGenre(styleName),
+                  }));
+                }}
                 disabled={submitting}
                 className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
               >

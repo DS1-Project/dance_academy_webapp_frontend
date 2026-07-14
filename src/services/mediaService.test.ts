@@ -14,7 +14,7 @@ describe("mediaService", () => {
     vi.clearAllMocks();
   });
 
-  it("uploads a file and returns the public url", async () => {
+  it("uploads a file and returns the public url without forcing Content-Type", async () => {
     vi.mocked(api.post).mockResolvedValue({
       data: { url: "http://127.0.0.1:8000/media/abc_clip.mp4" },
     } as never);
@@ -27,7 +27,8 @@ describe("mediaService", () => {
       "/api/media/upload/",
       expect.any(FormData),
       expect.objectContaining({
-        headers: { "Content-Type": "multipart/form-data" },
+        timeout: 120_000,
+        transformRequest: expect.any(Array),
       })
     );
   });

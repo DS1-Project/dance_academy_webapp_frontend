@@ -8,10 +8,12 @@ import {
 } from "@/lib/checkoutForm";
 
 describe("checkoutForm", () => {
-  it("validates buyer details including phone", () => {
+  it("validates buyer details including phone digits only", () => {
     expect(validateBuyerDetails({ name: "", email: "a@b.com", phone: "300" })).toMatch(/nombre/i);
     expect(validateBuyerDetails({ name: "Ana", email: "bad", phone: "300" })).toMatch(/válido/i);
     expect(validateBuyerDetails({ name: "Ana", email: "a@b.com", phone: "" })).toMatch(/teléfono/i);
+    expect(validateBuyerDetails({ name: "Ana", email: "a@b.com", phone: "300-abc" })).toMatch(/números/i);
+    expect(validateBuyerDetails({ name: "Ana", email: "a@b.com", phone: "300" })).toMatch(/entre/i);
     expect(validateBuyerDetails({ name: "Ana", email: "a@b.com", phone: "3001234567" })).toBeNull();
   });
 
@@ -38,13 +40,29 @@ describe("checkoutForm", () => {
     ).toBeNull();
   });
 
-  it("validates payment details requiring method and card fields", () => {
+  it("validates payment details requiring method and numeric card fields", () => {
     expect(validatePaymentDetails({ method: "", cardNumber: "4111", expiry: "12/28", cvv: "123" })).toMatch(
       /método/i
     );
     expect(
       validatePaymentDetails({ method: "Tarjeta de Crédito", cardNumber: "", expiry: "12/28", cvv: "123" })
     ).toMatch(/tarjeta/i);
+    expect(
+      validatePaymentDetails({
+        method: "Tarjeta de Crédito",
+        cardNumber: "4111-abcd",
+        expiry: "12/28",
+        cvv: "123",
+      })
+    ).toMatch(/números/i);
+    expect(
+      validatePaymentDetails({
+        method: "Tarjeta de Crédito",
+        cardNumber: "4111111111111111",
+        expiry: "12/28",
+        cvv: "12",
+      })
+    ).toMatch(/CVV/i);
     expect(
       validatePaymentDetails({
         method: "Tarjeta de Crédito",

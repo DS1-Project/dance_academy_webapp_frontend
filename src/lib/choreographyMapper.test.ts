@@ -62,6 +62,7 @@ describe("choreographyMapper", () => {
       videoCount: 3,
       rating: 4.5,
       salesCount: 5,
+      thumbnailUrl: "https://example.com/thumb.jpg",
     });
   });
 

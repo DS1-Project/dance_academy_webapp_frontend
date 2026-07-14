@@ -65,11 +65,19 @@ export function CartSheet({ children }: CartSheetProps) {
                   className="flex items-center gap-3 p-3 bg-card rounded-2xl border border-border"
                 >
                   <div
-                    className={`w-14 h-14 rounded-xl bg-gradient-to-br ${item.choreography.thumbnailColor} flex items-center justify-center shrink-0`}
+                    className={`w-14 h-14 rounded-xl bg-gradient-to-br ${item.choreography.thumbnailColor} flex items-center justify-center shrink-0 overflow-hidden`}
                   >
-                    <span className="text-primary-foreground font-display font-extrabold text-[10px] text-center leading-tight px-1">
-                      {item.choreography.songName.slice(0, 10)}
-                    </span>
+                    {item.choreography.thumbnailUrl ? (
+                      <img
+                        src={item.choreography.thumbnailUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-primary-foreground font-display font-extrabold text-[10px] text-center leading-tight px-1">
+                        {item.choreography.songName.slice(0, 10)}
+                      </span>
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-sm truncate">

@@ -67,6 +67,7 @@ export function mapBackendChoreographyToCard(
     reviewCount: 0,
     salesCount,
     thumbnailColor: THUMBNAIL_COLORS[index % THUMBNAIL_COLORS.length],
+    thumbnailUrl: item.thumbnail_url || undefined,
     createdAt: item.created_at,
   };
 }
