@@ -54,6 +54,7 @@ export function UserFormModal({ user, mode, open, onOpenChange, onSuccess }: Use
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<UserRole>("profesor");
+  const [isApproved, setIsApproved] = useState(true);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -65,11 +66,13 @@ export function UserFormModal({ user, mode, open, onOpenChange, onSuccess }: Use
       setName("");
       setEmail("");
       setRole("profesor");
+      setIsApproved(true);
       setPassword("");
     } else {
       setName([user.first_name, user.last_name].filter(Boolean).join(" ").trim());
       setEmail(user.email);
       setRole(backendToFrontendRole[user.role] ?? "cliente");
+      setIsApproved(user.is_approved);
       setPassword("");
     }
     setShowPassword(false);
@@ -108,7 +111,7 @@ export function UserFormModal({ user, mode, open, onOpenChange, onSuccess }: Use
           last_name: lastName,
           role: backendRole,
           password,
-          is_approved: true,
+          is_approved: isApproved,
           is_active: true,
         };
         const created = await createUser(payload);
@@ -119,11 +122,9 @@ export function UserFormModal({ user, mode, open, onOpenChange, onSuccess }: Use
           email: email.trim(),
           first_name: firstName,
           last_name: lastName,
+          role: frontendToBackendRole[role],
+          is_approved: isApproved,
         };
-        const backendRole = frontendToBackendRole[role];
-        if (backendRole !== "client") {
-          payload.role = backendRole;
-        }
         if (password.trim()) payload.password = password;
         const updatedUser = await updateUser(user.id, payload);
         toast({ title: "Usuario actualizado", description: "Los cambios se guardaron correctamente." });
@@ -147,7 +148,7 @@ export function UserFormModal({ user, mode, open, onOpenChange, onSuccess }: Use
           <DialogDescription>
             {isCreate
               ? "Crea un administrador, director o profesor."
-              : "Modifica los datos del usuario. El ID no se puede cambiar."}
+              : "Puedes cambiar el rol, el estado de aprobación y los datos del usuario."}
           </DialogDescription>
         </DialogHeader>
 
@@ -202,7 +203,7 @@ export function UserFormModal({ user, mode, open, onOpenChange, onSuccess }: Use
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as UserRole)}
-              disabled={isSubmitting || (!isCreate && user?.role === "client")}
+              disabled={isSubmitting}
               className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
             >
               {(isCreate ? createRoleOptions : editRoleOptions).map((option) => (
@@ -210,6 +211,19 @@ export function UserFormModal({ user, mode, open, onOpenChange, onSuccess }: Use
                   {option.label}
                 </option>
               ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Estado</label>
+            <select
+              value={isApproved ? "approved" : "pending"}
+              onChange={(e) => setIsApproved(e.target.value === "approved")}
+              disabled={isSubmitting}
+              className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+            >
+              <option value="approved">Aprobado</option>
+              <option value="pending">Pendiente</option>
             </select>
           </div>
 
