@@ -165,7 +165,7 @@ export function ChoreographyFormDialog({
     setVideoRows((rows) => rows.filter((r) => r.rowId !== rowId));
   }
 
-  function useSampleUrl(rowId: string, index: number) {
+  function applySampleUrl(rowId: string, index: number) {
     const sample = pickNextSampleVideoUrl(index);
     updateVideoRow(rowId, { videoUrl: sample.url });
     toast({ title: "URL de ejemplo aplicada", description: sample.label });
@@ -514,7 +514,7 @@ export function ChoreographyFormDialog({
                       </label>
                       <button
                         type="button"
-                        onClick={() => useSampleUrl(row.rowId, index)}
+                        onClick={() => applySampleUrl(row.rowId, index)}
                         disabled={submitting}
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:underline"
                       >

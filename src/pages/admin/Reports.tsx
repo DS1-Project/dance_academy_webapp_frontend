@@ -60,7 +60,6 @@ const Reports = () => {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const kpis = data
