@@ -7,7 +7,7 @@ import {
   updateMeRequest,
 } from "@/services/authService";
 import { getApiErrorMessage, tokenStorage } from "@/lib/api";
-import type { User, UserRole, BackendRole } from "@/types/auth";
+import type { User, UserRole } from "@/types/auth";
 
 export type { User, UserRole };
 
