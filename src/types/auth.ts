@@ -44,7 +44,8 @@ export interface RegisterPayload {
   password_confirm: string;
   first_name: string;
   last_name: string;
-  role?: "client" | "teacher";
+  role?: BackendRole;
+  captcha_token: string;
 }
 
 export type ApiErrorResponse = {

@@ -7,12 +7,6 @@ import { Footer } from "@/components/Footer";
 import { Eye, EyeOff, LogIn, AlertCircle, Loader2, Clock } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
 import { required, validateEmail } from "@/lib/formValidation";
-import {
-  LOGIN_ROLE_OPTIONS,
-  matchesSelectedRole,
-  type SelectableLoginRole,
-} from "@/lib/userRoleOptions";
-import type { BackendRole } from "@/types/auth";
 
 const RECAPTCHA_SITE_KEY =
   import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LfIKlItAAAAADuaamFvCgnFpHUvGruN2egJsNX6";
@@ -20,11 +14,10 @@ const RECAPTCHA_SITE_KEY =
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [selectedRole, setSelectedRole] = useState<SelectableLoginRole>("client");
   const [showPassword, setShowPassword] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const { login, logout, isLoading } = useAuth();
+  const { login, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const infoMessage = (location.state as { message?: string })?.message;
@@ -54,15 +47,7 @@ const Login = () => {
     const result = await login(email, password, token);
 
     if (result.success) {
-      const role = result.user?.role as BackendRole | undefined;
-      if (!matchesSelectedRole(selectedRole, role)) {
-        logout();
-        setError(
-          "El tipo de usuario seleccionado no coincide con esta cuenta. Elige el rol correcto e inténtalo de nuevo."
-        );
-        return;
-      }
-
+      const role = result.user?.role;
       if (role === "admin" || role === "director") {
         navigate("/admin");
       } else {
@@ -111,23 +96,6 @@ const Login = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="label-caps text-xs text-muted-foreground mb-1.5 block">
-                  Tipo de usuario
-                </label>
-                <select
-                  value={selectedRole}
-                  onChange={(e) => setSelectedRole(e.target.value as SelectableLoginRole)}
-                  disabled={isLoading}
-                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
-                >
-                  {LOGIN_ROLE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
               <div>
                 <label className="label-caps text-xs text-muted-foreground mb-1.5 block">
                   Correo electrónico
