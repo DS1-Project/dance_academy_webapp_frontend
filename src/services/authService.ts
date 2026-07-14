@@ -42,3 +42,12 @@ export async function getMeRequest(): Promise<BackendUser> {
   const { data } = await api.get<BackendUser>("/api/auth/users/me/");
   return data;
 }
+
+export async function updateMeRequest(payload: {
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+}): Promise<BackendUser> {
+  const { data } = await api.patch<BackendUser>("/api/auth/users/me/", payload);
+  return data;
+}

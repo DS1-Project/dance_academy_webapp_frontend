@@ -13,6 +13,17 @@ export interface AdminUser {
   date_joined: string;
 }
 
+export interface CreateUserPayload {
+  email: string;
+  username?: string;
+  first_name: string;
+  last_name: string;
+  role: BackendRole;
+  password: string;
+  is_approved?: boolean;
+  is_active?: boolean;
+}
+
 export interface UpdateUserPayload {
   email?: string;
   username?: string;

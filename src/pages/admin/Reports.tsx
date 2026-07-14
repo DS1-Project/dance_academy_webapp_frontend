@@ -21,6 +21,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   DollarSign,
@@ -28,7 +29,9 @@ import {
   Video,
   TrendingUp,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
+import { getApiErrorMessage } from "@/lib/api";
 import {
   fetchDashboardReports,
   type ReportsResponse,
@@ -44,15 +47,19 @@ const currency = (n: number) =>
 const Reports = () => {
   const [data, setData] = useState<ReportsResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const load = () => {
+    setLoading(true);
+    setError("");
+    fetchDashboardReports()
+      .then((res) => setData(res))
+      .catch((err) => setError(getApiErrorMessage(err, "No se pudieron cargar los reportes")))
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    let mounted = true;
-    fetchDashboardReports()
-      .then((res) => mounted && setData(res))
-      .finally(() => mounted && setLoading(false));
-    return () => {
-      mounted = false;
-    };
+    load();
   }, []);
 
   const kpis = data
@@ -101,16 +108,28 @@ const Reports = () => {
             <p className="label-caps text-primary mb-1">Reportes</p>
             <h1 className="text-3xl md:text-5xl mb-2">Dashboard Gerencial</h1>
             <p className="text-muted-foreground">
-              Visión consolidada de ventas y desempeño (datos simulados desde el backend).
+              Visión consolidada de ventas y desempeño, calculada a partir de las ventas y coreografías reales.
             </p>
           </div>
 
-          {loading || !data ? (
+          {error && (
+            <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 text-destructive text-sm mb-6">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <span>{error}</span>
+                <Button variant="link" size="sm" className="h-auto p-0 ml-2 text-destructive" onClick={load}>
+                  Reintentar
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {loading ? (
             <div className="flex items-center justify-center py-24 text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin mr-2" />
               Cargando reportes...
             </div>
-          ) : (
+          ) : !data ? null : (
             <>
               {/* KPIs */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

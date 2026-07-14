@@ -76,6 +76,9 @@ export function Navbar() {
                   Dashboard
                 </Link>
               </Button>
+              <Button variant="ghost" size="sm" className="gap-1.5" asChild>
+                <Link to="/perfil">Perfil</Link>
+              </Button>
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted">
                 <div className="w-6 h-6 rounded-full bg-gradient-brand flex items-center justify-center text-primary-foreground text-xs font-bold">
                   {user.name.charAt(0)}

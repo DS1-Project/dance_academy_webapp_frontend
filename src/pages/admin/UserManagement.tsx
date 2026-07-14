@@ -16,14 +16,16 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { getApiErrorMessage } from "@/lib/api";
-import { deleteUser, getAllUsers } from "@/services/adminService";
+import { deleteUser, getAllUsers, updateUser } from "@/services/adminService";
 import type { AdminUser } from "@/types/admin";
 import type { BackendRole } from "@/types/auth";
 import {
   AlertCircle,
   ArrowLeft,
+  CheckCircle2,
   Loader2,
   Pencil,
+  Plus,
   Search,
   Trash2,
   Users,
@@ -46,9 +48,11 @@ const UserManagement = () => {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [modalMode, setModalMode] = useState<"create" | "edit">("edit");
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -83,7 +87,34 @@ const UserManagement = () => {
 
   const handleEdit = (user: AdminUser) => {
     setSelectedUser(user);
+    setModalMode("edit");
     setEditModalOpen(true);
+  };
+
+  const handleCreate = () => {
+    setSelectedUser(null);
+    setModalMode("create");
+    setEditModalOpen(true);
+  };
+
+  const handleApprove = async (user: AdminUser) => {
+    setApprovingId(user.id);
+    try {
+      const updated = await updateUser(user.id, { is_approved: true });
+      setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+      toast({
+        title: "Cliente aprobado",
+        description: `${getFullName(user)} ya puede iniciar sesión.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Error al aprobar",
+        description: getApiErrorMessage(err, "No se pudo aprobar el usuario"),
+        variant: "destructive",
+      });
+    } finally {
+      setApprovingId(null);
+    }
   };
 
   const handleDeleteConfirm = async () => {
@@ -109,8 +140,12 @@ const UserManagement = () => {
     }
   };
 
-  const handleUpdateSuccess = (updatedUser: AdminUser) => {
-    setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
+  const handleUpdateSuccess = (savedUser: AdminUser) => {
+    setUsers((prev) => {
+      const exists = prev.some((u) => u.id === savedUser.id);
+      if (!exists) return [savedUser, ...prev];
+      return prev.map((u) => (u.id === savedUser.id ? savedUser : u));
+    });
   };
 
   return (
@@ -131,10 +166,18 @@ const UserManagement = () => {
               <Users className="h-5 w-5 text-primary" />
               <p className="label-caps text-primary">Administración</p>
             </div>
-            <h1 className="text-3xl md:text-4xl mb-2">Gestión de Usuarios</h1>
-            <p className="text-muted-foreground">
-              Busca, edita y elimina usuarios de la plataforma
-            </p>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h1 className="text-3xl md:text-4xl mb-2">Gestión de Usuarios</h1>
+                <p className="text-muted-foreground">
+                  Crea internos, aprueba clientes y administra la plataforma
+                </p>
+              </div>
+              <Button className="gap-2 shrink-0" onClick={handleCreate}>
+                <Plus className="h-4 w-4" />
+                Crear usuario
+              </Button>
+            </div>
           </div>
 
           <div className="bg-card rounded-2xl shadow-card p-5 md:p-6">
@@ -180,6 +223,7 @@ const UserManagement = () => {
                       Correo
                     </th>
                     <th className="text-left py-3 text-muted-foreground font-semibold">Rol</th>
+                    <th className="text-left py-3 text-muted-foreground font-semibold">Estado</th>
                     <th className="text-right py-3 text-muted-foreground font-semibold">
                       Acciones
                     </th>
@@ -188,14 +232,14 @@ const UserManagement = () => {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                      <td colSpan={6} className="py-12 text-center text-muted-foreground">
                         <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
                         Cargando usuarios...
                       </td>
                     </tr>
                   ) : filteredUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                      <td colSpan={6} className="py-12 text-center text-muted-foreground">
                         {search ? "No se encontraron usuarios con ese criterio." : "No hay usuarios registrados."}
                       </td>
                     </tr>
@@ -211,7 +255,34 @@ const UserManagement = () => {
                           </span>
                         </td>
                         <td className="py-3">
+                          <span
+                            className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${
+                              user.is_approved
+                                ? "bg-accent/15 text-accent"
+                                : "bg-amber-500/15 text-amber-700"
+                            }`}
+                          >
+                            {user.is_approved ? "Aprobado" : "Pendiente"}
+                          </span>
+                        </td>
+                        <td className="py-3">
                           <div className="flex items-center justify-end gap-2">
+                            {!user.is_approved && user.role === "client" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1.5"
+                                disabled={approvingId === user.id}
+                                onClick={() => void handleApprove(user)}
+                              >
+                                {approvingId === user.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                )}
+                                Aprobar
+                              </Button>
+                            )}
                             <Button
                               variant="outline"
                               size="sm"
@@ -245,6 +316,7 @@ const UserManagement = () => {
 
       <UserFormModal
         user={selectedUser}
+        mode={modalMode}
         open={editModalOpen}
         onOpenChange={setEditModalOpen}
         onSuccess={handleUpdateSuccess}

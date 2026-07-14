@@ -4,32 +4,35 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   ShoppingCart,
-  Play,
   BookOpen,
-  Star,
+  History,
   Loader2,
   AlertCircle,
-  ExternalLink,
-  ChevronDown,
-  ChevronUp,
   RefreshCw,
+  PlayCircle,
 } from "lucide-react";
-import { useState } from "react";
-import { useMyEnrollments } from "@/hooks/useMyEnrollments";
-import { choreographies } from "@/lib/mock-data";
-
-function formatDuration(seconds: number) {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
+import { usePurchasedChoreographies } from "@/hooks/usePurchasedChoreographies";
+import { usePlaybackHistory } from "@/hooks/usePlaybackHistory";
+import { useCatalogChoreographies } from "@/hooks/useCatalogChoreographies";
+import { PurchasedChoreographyCard } from "@/components/dashboards/PurchasedChoreographyCard";
 
 export function ClienteDashboard({ user }: { user: User }) {
   const { items } = useCart();
-  const { enrollments, isLoading, error, reload } = useMyEnrollments();
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const {
+    choreographies: purchased,
+    isLoading: purchasedLoading,
+    error: purchasedError,
+    reload: reloadPurchased,
+  } = usePurchasedChoreographies();
+  const { history, isLoading: historyLoading, error: historyError, reload: reloadHistory } = usePlaybackHistory();
+  const { items: catalogItems, loading: catalogLoading } = useCatalogChoreographies();
 
-  const suggestions = choreographies.slice(0, 4);
+  const purchasedIds = new Set(purchased.map((c) => c.id));
+  const suggestions = catalogItems.filter((c) => !purchasedIds.has(c.id)).slice(0, 4);
+
+  function handleVideoPlayed() {
+    reloadHistory();
+  }
 
   return (
     <div>
@@ -43,9 +46,7 @@ export function ClienteDashboard({ user }: { user: User }) {
       <div className="grid grid-cols-3 gap-4 mb-8">
         <div className="bg-card rounded-2xl shadow-card p-5">
           <BookOpen className="h-5 w-5 text-primary mb-2" />
-          <p className="text-2xl font-display font-extrabold">
-            {isLoading ? "…" : enrollments.length}
-          </p>
+          <p className="text-2xl font-display font-extrabold">{purchasedLoading ? "…" : purchased.length}</p>
           <p className="text-xs text-muted-foreground">Compradas</p>
         </div>
         <div className="bg-card rounded-2xl shadow-card p-5">
@@ -54,9 +55,9 @@ export function ClienteDashboard({ user }: { user: User }) {
           <p className="text-xs text-muted-foreground">En Carrito</p>
         </div>
         <div className="bg-card rounded-2xl shadow-card p-5">
-          <Star className="h-5 w-5 text-accent mb-2" />
-          <p className="text-2xl font-display font-extrabold">4.8</p>
-          <p className="text-xs text-muted-foreground">Mi Valoración</p>
+          <History className="h-5 w-5 text-accent mb-2" />
+          <p className="text-2xl font-display font-extrabold">{historyLoading ? "…" : history.length}</p>
+          <p className="text-xs text-muted-foreground">Reproducciones</p>
         </div>
       </div>
 
@@ -64,27 +65,27 @@ export function ClienteDashboard({ user }: { user: User }) {
       <div className="bg-card rounded-2xl shadow-card p-5 md:p-6 mb-8">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold">🎬 Mis Coreografías Compradas</h3>
-          <Button variant="ghost" size="sm" onClick={reload} disabled={isLoading} className="gap-1">
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+          <Button variant="ghost" size="sm" onClick={reloadPurchased} disabled={purchasedLoading} className="gap-1">
+            <RefreshCw className={`h-4 w-4 ${purchasedLoading ? "animate-spin" : ""}`} />
             Actualizar
           </Button>
         </div>
 
-        {isLoading && (
+        {purchasedLoading && (
           <div className="flex items-center justify-center py-10 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin mr-2" />
             Cargando tus cursos...
           </div>
         )}
 
-        {!isLoading && error && (
+        {!purchasedLoading && purchasedError && (
           <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 text-destructive text-sm">
             <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-            <span>{error}</span>
+            <span>{purchasedError}</span>
           </div>
         )}
 
-        {!isLoading && !error && enrollments.length === 0 && (
+        {!purchasedLoading && !purchasedError && purchased.length === 0 && (
           <div className="text-center py-10">
             <p className="text-3xl mb-2">📚</p>
             <p className="font-semibold mb-1">Aún no tienes coreografías</p>
@@ -95,88 +96,62 @@ export function ClienteDashboard({ user }: { user: User }) {
           </div>
         )}
 
-        {!isLoading && !error && enrollments.length > 0 && (
+        {!purchasedLoading && !purchasedError && purchased.length > 0 && (
           <div className="space-y-3">
-            {enrollments.map((e) => {
-              const isOpen = expandedId === e.id;
-              const videos = e.detail?.videos ?? [];
-              return (
-                <div key={e.id} className="rounded-xl bg-muted/50 overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setExpandedId(isOpen ? null : e.id)}
-                    className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/70 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-brand flex items-center justify-center shrink-0">
-                        <Play className="h-5 w-5 text-primary-foreground" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-sm truncate">{e.choreography_title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Adquirida el {new Date(e.acquired_at).toLocaleDateString()}
-                          {e.detail?.videos ? ` · ${e.detail.videos.length} videos` : ""}
-                        </p>
-                      </div>
-                    </div>
-                    {isOpen ? <ChevronUp className="h-4 w-4 shrink-0" /> : <ChevronDown className="h-4 w-4 shrink-0" />}
-                  </button>
+            {purchased.map((c) => (
+              <PurchasedChoreographyCard
+                key={c.id}
+                choreography={c}
+                currentUserId={user.id}
+                onPlayed={handleVideoPlayed}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
-                  {isOpen && (
-                    <div className="border-t border-border/50 p-4 space-y-2">
-                      {e.detailError && (
-                        <div className="flex items-start gap-2 text-xs text-destructive">
-                          <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                          <span>{e.detailError}</span>
-                        </div>
-                      )}
-                      {!e.detail && !e.detailError && (
-                        <div className="flex items-center text-xs text-muted-foreground">
-                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
-                          Cargando videos...
-                        </div>
-                      )}
-                      {e.detail?.description && (
-                        <p className="text-xs text-muted-foreground mb-2">{e.detail.description}</p>
-                      )}
-                      {videos.length === 0 && e.detail && (
-                        <p className="text-xs text-muted-foreground">
-                          Esta coreografía aún no tiene videos publicados.
-                        </p>
-                      )}
-                      {videos.length > 0 && (
-                        <ul className="space-y-1.5">
-                          {videos
-                            .slice()
-                            .sort((a, b) => a.sequence_order - b.sequence_order)
-                            .map((v) => (
-                              <li key={v.id}>
-                                <a
-                                  href={v.video_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-background hover:bg-primary/5 border border-border/50 transition-colors"
-                                >
-                                  <span className="flex items-center gap-2 min-w-0">
-                                    <span className="w-6 h-6 rounded-md bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
-                                      {v.sequence_order}
-                                    </span>
-                                    <span className="text-sm font-medium truncate">{v.title}</span>
-                                  </span>
-                                  <span className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
-                                    {formatDuration(v.duration_seconds)}
-                                    <ExternalLink className="h-3.5 w-3.5" />
-                                  </span>
-                                </a>
-                              </li>
-                            ))}
-                        </ul>
-                      )}
-                    </div>
-                  )}
+      {/* Playback history */}
+      <div className="bg-card rounded-2xl shadow-card p-5 md:p-6 mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold flex items-center gap-2">
+            <History className="h-4 w-4 text-accent" />
+            Historial de reproducción
+          </h3>
+        </div>
+
+        {historyLoading && (
+          <div className="flex items-center justify-center py-8 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+            Cargando historial...
+          </div>
+        )}
+
+        {!historyLoading && historyError && (
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 text-destructive text-sm">
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>{historyError}</span>
+          </div>
+        )}
+
+        {!historyLoading && !historyError && history.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-6">
+            Aún no has reproducido ningún video. Empieza desde tus coreografías compradas.
+          </p>
+        )}
+
+        {!historyLoading && !historyError && history.length > 0 && (
+          <div className="space-y-2">
+            {history.slice(0, 8).map((h) => (
+              <div key={h.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
+                <PlayCircle className="h-4 w-4 text-primary shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold truncate">{h.video_title ?? "Video"}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {h.choreography_title ?? "Coreografía"} · {new Date(h.created_at).toLocaleString()}
+                  </p>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -189,17 +164,33 @@ export function ClienteDashboard({ user }: { user: User }) {
             <Link to="/catalogo">Ver catálogo</Link>
           </Button>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {suggestions.map((c) => (
-            <div key={c.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
-              <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${c.thumbnailColor} shrink-0`} />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold truncate">{c.songName}</p>
-                <p className="text-xs text-muted-foreground">{c.genre} · ${c.price}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+
+        {catalogLoading ? (
+          <div className="flex items-center justify-center py-8 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+            Cargando sugerencias...
+          </div>
+        ) : suggestions.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6">
+            Ya tienes acceso a todo nuestro catálogo actual. ¡Vuelve pronto por más!
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {suggestions.map((c) => (
+              <Link
+                key={c.id}
+                to="/catalogo"
+                className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+              >
+                <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${c.thumbnailColor} shrink-0`} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold truncate">{c.songName}</p>
+                  <p className="text-xs text-muted-foreground">{c.genre} · ${c.price}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
