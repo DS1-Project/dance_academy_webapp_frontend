@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         last_name: lastName,
       });
 
-      return { success: true, pendingApproval: true };
+      return { success: true, pendingApproval: false };
     } catch (error) {
       return { success: false, error: getApiErrorMessage(error, "Error al registrarse") };
     } finally {

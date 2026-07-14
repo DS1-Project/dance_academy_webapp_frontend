@@ -33,8 +33,7 @@ const Registro = () => {
     if (result.success) {
       navigate("/login", {
         state: {
-          message:
-            "¡Cuenta creada con éxito! Tu registro está en revisión. Un administrador debe aprobar tu acceso antes de que puedas iniciar sesión. Te notificaremos cuando esté listo.",
+          message: "¡Cuenta creada con éxito! Ya puedes iniciar sesión con tu correo y contraseña.",
         },
       });
     } else {
@@ -56,8 +55,8 @@ const Registro = () => {
             <div className="flex items-start gap-2 p-3 rounded-xl bg-primary/10 text-primary text-sm mb-6">
               <Clock className="h-4 w-4 shrink-0 mt-0.5" />
               <p>
-                Al registrarte, tu cuenta quedará pendiente de aprobación. Solo podrás ingresar
-                cuando un administrador autorice tu acceso.
+                Al registrarte como cliente podrás ingresar de inmediato. No necesitas aprobación
+                de un administrador.
               </p>
             </div>
 

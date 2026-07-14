@@ -8,8 +8,8 @@ import { Eye, EyeOff, LogIn, AlertCircle, Loader2, Clock } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
 import { required, validateEmail } from "@/lib/formValidation";
 
-const PENDING_APPROVAL_MESSAGE =
-  "Tu cuenta está pendiente de aprobación. Un administrador debe autorizar tu acceso antes de que puedas ingresar a la plataforma.";
+const CLIENT_ACCESS_HINT =
+  "Si te registras como cliente, puedes iniciar sesión de inmediato. No necesitas aprobación de un administrador.";
 
 const RECAPTCHA_SITE_KEY =
   import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LfIKlItAAAAADuaamFvCgnFpHUvGruN2egJsNX6";
@@ -164,7 +164,7 @@ const Login = () => {
           <div className="bg-muted/50 rounded-3xl p-5">
             <div className="flex items-start gap-2 text-sm text-muted-foreground">
               <Clock className="h-4 w-4 shrink-0 mt-0.5" />
-              <p>{PENDING_APPROVAL_MESSAGE}</p>
+              <p>{CLIENT_ACCESS_HINT}</p>
             </div>
           </div>
         </div>
