@@ -170,7 +170,7 @@ const UserManagement = () => {
               <div>
                 <h1 className="text-3xl md:text-4xl mb-2">Gestión de Usuarios</h1>
                 <p className="text-muted-foreground">
-                  Crea internos, aprueba clientes y administra la plataforma
+                  Crea usuarios, aprueba cuentas y administra la plataforma
                 </p>
               </div>
               <Button className="gap-2 shrink-0" onClick={handleCreate}>

@@ -31,15 +31,13 @@ const backendToFrontendRole: Record<BackendRole, UserRole> = {
 };
 
 const createRoleOptions: { value: UserRole; label: string }[] = [
+  { value: "cliente", label: "Cliente" },
+  { value: "profesor", label: "Profesor" },
   { value: "admin", label: "Administrador" },
   { value: "director", label: "Director" },
-  { value: "profesor", label: "Profesor" },
 ];
 
-const editRoleOptions: { value: UserRole; label: string }[] = [
-  ...createRoleOptions,
-  { value: "cliente", label: "Cliente" },
-];
+const editRoleOptions = createRoleOptions;
 
 interface UserFormModalProps {
   user: AdminUser | null;
@@ -101,10 +99,6 @@ export function UserFormModal({ user, mode, open, onOpenChange, onSuccess }: Use
     try {
       if (isCreate) {
         const backendRole = frontendToBackendRole[role];
-        if (backendRole === "client") {
-          setError("Solo se pueden crear usuarios internos.");
-          return;
-        }
         const payload: CreateUserPayload = {
           email: email.trim(),
           first_name: firstName,
@@ -115,7 +109,7 @@ export function UserFormModal({ user, mode, open, onOpenChange, onSuccess }: Use
           is_active: true,
         };
         const created = await createUser(payload);
-        toast({ title: "Usuario creado", description: "El usuario interno quedó activo." });
+        toast({ title: "Usuario creado", description: "La cuenta se creó correctamente." });
         onSuccess(created);
       } else if (user) {
         const payload: UpdateUserPayload = {
@@ -144,10 +138,10 @@ export function UserFormModal({ user, mode, open, onOpenChange, onSuccess }: Use
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md rounded-2xl">
         <DialogHeader>
-          <DialogTitle>{isCreate ? "Crear usuario interno" : "Editar usuario"}</DialogTitle>
+          <DialogTitle>{isCreate ? "Crear usuario" : "Editar usuario"}</DialogTitle>
           <DialogDescription>
             {isCreate
-              ? "Crea un administrador, director o profesor."
+              ? "Crea un cliente, profesor, administrador o director."
               : "Puedes cambiar el rol, el estado de aprobación y los datos del usuario."}
           </DialogDescription>
         </DialogHeader>
