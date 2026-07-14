@@ -17,6 +17,7 @@ import {
   type PaymentDetails,
 } from "@/lib/checkoutForm";
 import { onlyDigits } from "@/lib/formValidation";
+import { dashboardHomePath } from "@/lib/dashboardHome";
 import { canPurchaseCourses } from "@/lib/purchaseAccess";
 import { checkoutSale, createSale } from "@/services/salesService";
 import {
@@ -77,7 +78,7 @@ const Carrito = () => {
                 <Button variant="outline" onClick={() => navigate("/catalogo")}>
                   Ver catálogo
                 </Button>
-                <Button onClick={() => navigate("/dashboard")}>Ir al dashboard</Button>
+                <Button onClick={() => navigate(dashboardHomePath(user?.role))}>Ir al dashboard</Button>
               </div>
             </div>
           </div>

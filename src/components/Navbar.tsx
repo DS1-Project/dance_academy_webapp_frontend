@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { CartSheet } from "@/components/CartSheet";
 import { canPurchaseCourses } from "@/lib/purchaseAccess";
+import { dashboardHomePath } from "@/lib/dashboardHome";
 
 const navLinks = [
   { label: "Inicio", path: "/" },
@@ -19,6 +20,7 @@ export function Navbar() {
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
   const { itemCount } = useCart();
+  const homePath = dashboardHomePath(user?.role);
 
   const handleLogout = () => {
     logout();
@@ -74,7 +76,7 @@ export function Navbar() {
           {isAuthenticated && user ? (
             <div className="hidden sm:flex items-center gap-2">
               <Button variant="ghost" size="sm" className="gap-1.5" asChild>
-                <Link to="/dashboard">
+                <Link to={homePath}>
                   <LayoutDashboard className="h-4 w-4" />
                   Dashboard
                 </Link>
@@ -129,7 +131,7 @@ export function Navbar() {
             ))}
             {isAuthenticated ? (
               <>
-                <Link to="/dashboard" onClick={() => setMobileOpen(false)} className="px-4 py-3 rounded-xl text-sm font-semibold text-primary">
+                <Link to={homePath} onClick={() => setMobileOpen(false)} className="px-4 py-3 rounded-xl text-sm font-semibold text-primary">
                   Dashboard
                 </Link>
                 <Button variant="outline" size="sm" onClick={() => { handleLogout(); setMobileOpen(false); }}>

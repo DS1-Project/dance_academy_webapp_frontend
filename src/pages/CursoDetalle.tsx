@@ -21,6 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { getApiErrorMessage } from "@/lib/api";
 import { mapBackendChoreographyToCard } from "@/lib/choreographyMapper";
+import { dashboardHomePath } from "@/lib/dashboardHome";
 import { canPurchaseCourses } from "@/lib/purchaseAccess";
 import {
   getChoreographyDetail,
@@ -324,7 +325,11 @@ const CursoDetalle = () => {
                         <p className="text-sm text-muted-foreground">
                           Con tu rol puedes explorar el catálogo, pero no comprar cursos.
                         </p>
-                        <Button variant="outline" className="w-full" onClick={() => navigate("/dashboard")}>
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => navigate(dashboardHomePath(user?.role))}
+                        >
                           Ir al dashboard
                         </Button>
                       </div>

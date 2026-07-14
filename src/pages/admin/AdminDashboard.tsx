@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, BarChart3, LineChart, Music, Users } from "lucide-react";
+import { BarChart3, LineChart, Music, Users } from "lucide-react";
 
 const adminCards = [
   {
@@ -47,14 +47,6 @@ const AdminDashboard = () => {
       <Navbar />
       <main className="pt-24 md:pt-28 pb-20">
         <div className="container">
-          <Link
-            to="/dashboard"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver al dashboard
-          </Link>
-
           <div className="mb-8">
             <p className="label-caps text-primary mb-1">Panel de administración</p>
             <h1 className="text-3xl md:text-5xl mb-2">Hola, {user?.name.split(" ")[0]}</h1>
