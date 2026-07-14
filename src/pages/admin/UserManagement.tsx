@@ -103,7 +103,7 @@ const UserManagement = () => {
       const updated = await updateUser(user.id, { is_approved: true });
       setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
       toast({
-        title: "Cliente aprobado",
+        title: "Usuario aprobado",
         description: `${getFullName(user)} ya puede iniciar sesión.`,
       });
     } catch (err) {
@@ -267,7 +267,7 @@ const UserManagement = () => {
                         </td>
                         <td className="py-3">
                           <div className="flex items-center justify-end gap-2">
-                            {!user.is_approved && user.role === "client" && (
+                            {!user.is_approved && (
                               <Button
                                 variant="outline"
                                 size="sm"
