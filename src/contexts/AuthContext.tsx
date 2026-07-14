@@ -7,7 +7,7 @@ import {
   updateMeRequest,
 } from "@/services/authService";
 import { getApiErrorMessage, tokenStorage } from "@/lib/api";
-import type { User, UserRole } from "@/types/auth";
+import type { User, UserRole, BackendRole } from "@/types/auth";
 
 export type { User, UserRole };
 
@@ -23,7 +23,8 @@ interface AuthContextType {
     email: string,
     password: string,
     passwordConfirm: string,
-    role?: "client" | "teacher"
+    role?: BackendRole,
+    captchaToken?: string
   ) => Promise<{ success: boolean; error?: string; pendingApproval?: boolean }>;
   updateProfile: (payload: {
     firstName: string;
@@ -75,7 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string,
     password: string,
     passwordConfirm: string,
-    role: "client" | "teacher" = "client"
+    role: BackendRole = "client",
+    captchaToken = ""
   ) => {
     setIsLoading(true);
     try {
@@ -89,9 +91,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         first_name: firstName,
         last_name: lastName,
         role,
+        captcha_token: captchaToken,
       });
 
-      return { success: true, pendingApproval: role === "teacher" };
+      return { success: true, pendingApproval: role !== "client" };
     } catch (error) {
       return { success: false, error: getApiErrorMessage(error, "Error al registrarse") };
     } finally {
