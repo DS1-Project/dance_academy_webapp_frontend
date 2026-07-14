@@ -7,7 +7,7 @@ export type { User, UserRole };
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; user?: { role?: string } }>;
   register: (
     name: string,
     email: string,

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, ShoppingCart, LogOut, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
+import { CartSheet } from "@/components/CartSheet";
 
 const navLinks = [
   { label: "Inicio", path: "/" },
@@ -52,14 +53,20 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link to="/carrito" className="relative p-2 rounded-full hover:bg-muted transition-colors">
-            <ShoppingCart className="h-5 w-5" />
-            {itemCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-gradient-brand rounded-full text-[10px] text-primary-foreground font-bold flex items-center justify-center">
-                {itemCount}
-              </span>
-            )}
-          </Link>
+          <CartSheet>
+            <button
+              type="button"
+              aria-label="Abrir carrito"
+              className="relative p-2 rounded-full hover:bg-muted transition-colors"
+            >
+              <ShoppingCart className="h-5 w-5" />
+              {itemCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-gradient-brand rounded-full text-[10px] text-primary-foreground font-bold flex items-center justify-center">
+                  {itemCount}
+                </span>
+              )}
+            </button>
+          </CartSheet>
 
           {isAuthenticated && user ? (
             <div className="hidden sm:flex items-center gap-2">

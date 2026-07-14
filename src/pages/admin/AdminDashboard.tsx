@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, BarChart3, Music, Users } from "lucide-react";
+import { ArrowLeft, BarChart3, LineChart, Music, Users } from "lucide-react";
 
 const adminCards = [
   {
@@ -29,6 +29,14 @@ const adminCards = [
     accent: "text-accent",
     bg: "bg-accent/10",
   },
+  {
+    title: "Dashboard Gerencial",
+    description: "Reportes con gráficos de ingresos y ventas por categoría.",
+    icon: LineChart,
+    to: "/admin/reportes",
+    accent: "text-primary",
+    bg: "bg-primary/10",
+  },
 ];
 
 const AdminDashboard = () => {
@@ -53,7 +61,7 @@ const AdminDashboard = () => {
             <p className="text-muted-foreground">Selecciona un módulo para comenzar</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {adminCards.map((card) => (
               <Link
                 key={card.to}
