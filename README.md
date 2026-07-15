@@ -1,14 +1,27 @@
 # 🗿 DanceAcademyApp - Frontend 👁️
 
-Esta es la interfaz grafica de la aplicacion DanceAcademyApp desarrollado con **React + Vite + Tailwindcss + TypeScript**
+## Descripción
+
+DanceAcademyApp - Frontend es la interfaz gráfica de la plataforma DanceAcademyApp, desarrollada con React, Vite, TypeScript y Tailwind CSS. Su objetivo es proporcionar una experiencia de usuario moderna, rápida e intuitiva para la gestión y uso de los servicios de la academia de danza.
 
 ---
 
-## 📦 Estructura del projecto
+## Tecnologías Utilizadas
+
+- React
+- Vite
+- TypeScript
+- Tailwind CSS
+- ESLint
+- Vitest
+- Playwright
+
+---
+
+## Estructura del Proyecto
 
 ```text
-tree Monitoring/dance_academy_webapp_frontend
-Monitoring/dance_academy_webapp_frontend
+dance_academy_webapp_frontend
 ├── bun.lock
 ├── bun.lockb
 ├── components.json
@@ -20,26 +33,26 @@ Monitoring/dance_academy_webapp_frontend
 ├── playwright-fixture.ts
 ├── postcss.config.js
 ├── public
-│   ├── favicon.ico
-│   ├── favicon.svg
-│   ├── icons.svg
-│   ├── placeholder.svg
-│   └── robots.txt
+│   ├── favicon.ico
+│   ├── favicon.svg
+│   ├── icons.svg
+│   ├── placeholder.svg
+│   └── robots.txt
 ├── README.md
 ├── src
-│   ├── App.css
-│   ├── App.tsx
-│   ├── components
-│   ├── contexts
-│   ├── hooks
-│   ├── index.css
-│   ├── lib
-│   ├── main.tsx
-│   ├── pages
-│   ├── services
-│   ├── test
-│   ├── types
-│   └── vite-env.d.ts
+│   ├── App.css
+│   ├── App.tsx
+│   ├── components
+│   ├── contexts
+│   ├── hooks
+│   ├── index.css
+│   ├── lib
+│   ├── main.tsx
+│   ├── pages
+│   ├── services
+│   ├── test
+│   ├── types
+│   └── vite-env.d.ts
 ├── tailwind.config.ts
 ├── tsconfig.app.json
 ├── tsconfig.json
@@ -47,61 +60,112 @@ Monitoring/dance_academy_webapp_frontend
 ├── vite.config.js
 ├── vite.config.ts
 └── vitest.config.ts
-
 ```
 
-# ⚙️ Configuracion y instalacion local
+---
 
-Siga estos pasos detallados para correr la aplicacion cliente en su maquina local
+## Instalación y Ejecución Local
 
-1. Valla al directorio de Frontend
-Abra la terminal e ingrese a la carpeta raiz del frontend
-```Bash
+Siga los pasos descritos a continuación para ejecutar la aplicación en un entorno local.
+
+### 1. Clonar el repositorio
+
+```bash
+git clone <URL_DEL_REPOSITORIO>
+```
+
+### 2. Ingresar al directorio del proyecto
+
+```bash
 cd dance_academy_webapp_frontend
 ```
 
-2. Active el entorno virtual
-Activar el entorno virtual Active la carpeta env existente en función del sistema operativo y del terminal elegido:
+### 3. Instalar las dependencias
 
-En Windows (Command Prompt / CMD):
+Utilizando npm:
 
-```DOS
-env\Scripts\activate
-```
-En Windows (PowerShell):
-
-```PowerShell
-.\env\Scripts\Activate.ps1
-```
-En macOS / Linux / Git Bash:
-
-```Bash
-source env/bin/activate
-```
-(Una vez activado, verá (env) al principio de su línea de terminal).
-
-3. Instalar dependencias de proyectos Asegúrese de que la pip se actualiza e instale todas las bibliotecas externas requeridas:
-
-```Bash
-pip install --upgrade pip
-pip install
+```bash
+npm install
 ```
 
-4. Ejecutar el servidor
+O utilizando Bun:
 
-```Bash
+```bash
+bun install
+```
+
+### 4. Ejecutar la aplicación en modo desarrollo
+
+Con npm:
+
+```bash
 npm run dev
 ```
 
-### 👥 Colaboradores del Frontend
-Equipo de desarrollo del Frontend:
+Con Bun:
 
-CAMILO ANDRES RISCANEVO COTRINA
+```bash
+bun run dev
+```
 
-BRAYAN FERNANDO CRUZ PUERTA
+### 5. Acceder a la aplicación
 
-FREDDY ALEXANDER MELO BUITRAGO
+Una vez iniciado el servidor de desarrollo, abra el navegador y acceda a:
 
-VICTORIA YUAN CHEN
+```text
+http://localhost:5173
+```
+### Usuarios de prueba:
+admin1@gmail.com
+password:12345678
 
-YISEIRI YANUA SATIZABAL ORTIZ
+cliente21@gmail.com
+password:12345678
+
+teacher1@gmail.com
+password:12345678
+
+---
+
+## Ejecución de Pruebas
+
+### Pruebas Unitarias
+
+```bash
+npm run test
+```
+
+### Pruebas End-to-End
+
+```bash
+npx playwright test
+```
+
+---
+
+## Organización del Código
+
+- `components/`: Componentes reutilizables de la interfaz de usuario.
+- `pages/`: Vistas principales de la aplicación.
+- `services/`: Comunicación con APIs y servicios externos.
+- `contexts/`: Gestión de estado global mediante React Context.
+- `hooks/`: Hooks personalizados.
+- `types/`: Definiciones de tipos e interfaces TypeScript.
+- `lib/`: Funciones utilitarias y configuraciones compartidas.
+- `test/`: Pruebas unitarias e integrales.
+
+---
+
+## Equipo de Desarrollo Frontend
+
+- Camilo Andrés Riscanevo Cotrina
+- Brayan Fernando Cruz Puerta
+- Freddy Alexander Melo Buitrago
+- Victoria Yuan Chen
+- Yiseiri Yanua Satizábal Ortiz
+
+---
+
+## Licencia
+
+Este proyecto forma parte de DanceAcademyApp y su uso está sujeto a las políticas y condiciones definidas por el equipo de desarrollo y la organización propietaria del software.
