@@ -5,6 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { ReviewStars } from "@/components/ReviewStars";
 import { toast } from "@/hooks/use-toast";
 import { getApiErrorMessage } from "@/lib/api";
+import { canLeaveReview } from "@/lib/reviewAccess";
+import { useAuth } from "@/contexts/AuthContext";
 import { playVideo } from "@/services/videoService";
 import { createReview, getReviews, type ReviewResponse } from "@/services/reviewService";
 import type { BackendChoreography } from "@/types/backend";
@@ -26,6 +28,8 @@ export function PurchasedChoreographyCard({
   currentUserId,
   onPlayed,
 }: PurchasedChoreographyCardProps) {
+  const { user } = useAuth();
+  const canReview = canLeaveReview(user?.role, true);
   const [expanded, setExpanded] = useState(false);
   const [reviews, setReviews] = useState<ReviewResponse[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
@@ -67,6 +71,7 @@ export function PurchasedChoreographyCard({
 
   async function handleSubmitReview(e: React.FormEvent) {
     e.preventDefault();
+    if (!canReview) return;
     if (rating < 1) {
       toast({ title: "Selecciona una calificación", variant: "destructive" });
       return;
@@ -191,7 +196,7 @@ export function PurchasedChoreographyCard({
               </div>
             )}
 
-            {!myReview && !reviewsLoading && (
+            {!myReview && !reviewsLoading && canReview && (
               <form onSubmit={handleSubmitReview} className="rounded-lg border border-border/50 bg-background p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold">Deja tu reseña</span>
