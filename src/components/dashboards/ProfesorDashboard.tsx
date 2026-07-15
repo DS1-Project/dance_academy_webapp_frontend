@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import type { User } from "@/types/auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +34,7 @@ import {
   Loader2,
   Pencil,
   AlertCircle,
+  ExternalLink,
 } from "lucide-react";
 
 function danceStyleName(style: BackendChoreography["dance_style"]): string {
@@ -205,61 +207,80 @@ export function ProfesorDashboard({ user }: { user: User }) {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {choreographies.map((c) => (
-              <div
+              <article
                 key={c.id}
                 className="group relative rounded-2xl overflow-hidden bg-muted/30 hover:shadow-card-hover transition-all"
               >
-                <div className="relative aspect-video bg-gradient-to-br from-primary to-secondary">
-                  {c.thumbnail_url ? (
-                    <img src={c.thumbnail_url} alt={c.title} className="absolute inset-0 w-full h-full object-cover" />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="font-display font-extrabold text-primary-foreground text-lg text-center px-3 drop-shadow-lg leading-tight">
-                        {c.title}
+                <Link
+                  to={`/curso/${c.id}`}
+                  state={{ fromDashboard: true }}
+                  className="block"
+                  aria-label={`Ver detalle de ${c.title}`}
+                >
+                  <div className="relative aspect-video bg-gradient-to-br from-primary to-secondary">
+                    {c.thumbnail_url ? (
+                      <img src={c.thumbnail_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="font-display font-extrabold text-primary-foreground text-lg text-center px-3 drop-shadow-lg leading-tight">
+                          {c.title}
+                        </span>
+                      </div>
+                    )}
+                    <div className="absolute top-2 left-2">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                          c.is_approved ? "bg-accent text-accent-foreground" : "bg-amber-500 text-white"
+                        }`}
+                      >
+                        {c.is_approved ? "Aprobada" : "Pendiente"}
                       </span>
                     </div>
-                  )}
-                  <div className="absolute top-2 left-2">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
-                        c.is_approved ? "bg-accent text-accent-foreground" : "bg-amber-500 text-white"
-                      }`}
-                    >
-                      {c.is_approved ? "Aprobada" : "Pendiente"}
-                    </span>
+                    <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/15 transition-colors flex items-center justify-center">
+                      <span className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background/90 text-xs font-semibold">
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        Ver detalle
+                      </span>
+                    </div>
                   </div>
-                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => openEditDialog(c)}
-                      className="w-9 h-9 rounded-full bg-foreground/70 backdrop-blur-sm text-background flex items-center justify-center hover:bg-primary transition-colors"
-                      aria-label="Editar coreografía"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => setDeleteTarget(c)}
-                      className="w-9 h-9 rounded-full bg-foreground/70 backdrop-blur-sm text-background flex items-center justify-center hover:bg-destructive transition-colors"
-                      aria-label="Eliminar coreografía"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                  <div className="p-3 pb-2">
+                    <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{c.title}</p>
+                    <p className="text-xs text-muted-foreground truncate">{danceStyleName(c.dance_style)}</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-xs text-muted-foreground">
+                        {c.stats?.total_sales_count ?? 0} {(c.stats?.total_sales_count ?? 0) === 1 ? "venta" : "ventas"}
+                        {" · "}
+                        {c.video_count ?? 0} {(c.video_count ?? 0) === 1 ? "video" : "videos"}
+                      </p>
+                      <p className="text-sm font-display font-extrabold">
+                        ${c.stats?.actual_price ? Number(c.stats.actual_price).toFixed(2) : "0.00"}
+                      </p>
+                    </div>
                   </div>
+                </Link>
+                <div className="flex gap-2 px-3 pb-3">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 gap-1.5"
+                    onClick={() => openEditDialog(c)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Editar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 text-destructive hover:text-destructive"
+                    onClick={() => setDeleteTarget(c)}
+                    aria-label="Eliminar coreografía"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
-                <div className="p-3">
-                  <p className="font-semibold text-sm truncate">{c.title}</p>
-                  <p className="text-xs text-muted-foreground truncate">{danceStyleName(c.dance_style)}</p>
-                  <div className="flex items-center justify-between mt-1">
-                    <p className="text-xs text-muted-foreground">
-                      {c.stats?.total_sales_count ?? 0} {(c.stats?.total_sales_count ?? 0) === 1 ? "venta" : "ventas"}
-                      {" · "}
-                      {c.video_count ?? 0} {(c.video_count ?? 0) === 1 ? "video" : "videos"}
-                    </p>
-                    <p className="text-sm font-display font-extrabold">
-                      ${c.stats?.actual_price ? Number(c.stats.actual_price).toFixed(2) : "0.00"}
-                    </p>
-                  </div>
-                </div>
-              </div>
+              </article>
             ))}
           </div>
         )}

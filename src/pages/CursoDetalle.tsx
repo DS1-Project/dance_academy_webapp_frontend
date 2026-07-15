@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Check,
   Loader2,
+  Pencil,
   Play,
   ShoppingCart,
   Star,
@@ -17,19 +18,24 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ReviewStars } from "@/components/ReviewStars";
+import { ChoreographyFormDialog } from "@/components/choreography/ChoreographyFormDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { getApiErrorMessage } from "@/lib/api";
+import { canManageCourse } from "@/lib/courseAccess";
 import { mapBackendChoreographyToCard } from "@/lib/choreographyMapper";
 import { dashboardHomePath } from "@/lib/dashboardHome";
 import { canPurchaseCourses } from "@/lib/purchaseAccess";
 import { canLeaveReview, canViewReviewsSection } from "@/lib/reviewAccess";
+import { getTeacherOptions } from "@/services/adminService";
 import {
   getChoreographyDetail,
   listChoreographyVideos,
+  listDanceStyles,
 } from "@/services/choreographyService";
 import { createReview, getReviews, type ReviewResponse } from "@/services/reviewService";
-import type { BackendChoreography, BackendVideoClip } from "@/types/backend";
+import type { AdminUser } from "@/types/admin";
+import type { BackendChoreography, BackendVideoClip, DanceStyle } from "@/types/backend";
 
 function formatDuration(seconds: number) {
   const m = Math.floor(seconds / 60);
@@ -59,9 +65,11 @@ const DIFFICULTY_LABEL: Record<string, string> = {
 const CursoDetalle = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated } = useAuth();
   const { addItem, isInCart } = useCart();
   const canPurchase = canPurchaseCourses(user?.role);
+  const fromDashboard = Boolean((location.state as { fromDashboard?: boolean } | null)?.fromDashboard);
 
   const [course, setCourse] = useState<BackendChoreography | null>(null);
   const [videos, setVideos] = useState<BackendVideoClip[]>([]);
@@ -73,6 +81,35 @@ const CursoDetalle = () => {
   const [comment, setComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [danceStyles, setDanceStyles] = useState<DanceStyle[]>([]);
+  const [teacherOptions, setTeacherOptions] = useState<AdminUser[]>([]);
+  const [teacherOptionsUnavailable, setTeacherOptionsUnavailable] = useState(false);
+
+  function reloadCourse() {
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    Promise.all([
+      getChoreographyDetail(id),
+      listChoreographyVideos(id).catch(() => [] as BackendVideoClip[]),
+      getReviews(id, user?.id).catch(() => [] as ReviewResponse[]),
+    ])
+      .then(([detail, clips, courseReviews]) => {
+        setCourse(detail);
+        const fromDetail = [...(detail.videos ?? [])].sort(
+          (a, b) => a.sequence_order - b.sequence_order
+        );
+        const fromList = [...clips].sort((a, b) => a.sequence_order - b.sequence_order);
+        setVideos(fromList.length ? fromList : fromDetail);
+        setReviews(courseReviews);
+      })
+      .catch((err) => {
+        setError(getApiErrorMessage(err, "No se pudo cargar el curso."));
+      })
+      .finally(() => setLoading(false));
+  }
 
   useEffect(() => {
     if (!id) return;
@@ -109,6 +146,15 @@ const CursoDetalle = () => {
     };
   }, [id, user?.id]);
 
+  useEffect(() => {
+    listDanceStyles()
+      .then(setDanceStyles)
+      .catch(() => setDanceStyles([]));
+    getTeacherOptions()
+      .then(setTeacherOptions)
+      .catch(() => setTeacherOptionsUnavailable(true));
+  }, []);
+
   const card = useMemo(
     () => (course ? mapBackendChoreographyToCard(course) : null),
     [course]
@@ -128,8 +174,13 @@ const CursoDetalle = () => {
   const inCart = course ? isInCart(course.id) : false;
   const price = course?.stats?.actual_price ? Number(course.stats.actual_price) : 0;
   const isPurchased = Boolean(course?.is_purchased);
+  const canManage = canManageCourse(user, course);
+  const canWatchVideos = isPurchased || canManage;
   const canReview = canLeaveReview(user?.role, isPurchased);
   const showReviews = canViewReviewsSection(user?.role);
+  const backPath = fromDashboard || user?.role === "profesor" ? dashboardHomePath(user?.role) : "/catalogo";
+  const backLabel =
+    fromDashboard || user?.role === "profesor" ? "Volver al dashboard" : "Volver al catálogo";
 
   async function handleBuy() {
     if (!card) return;
@@ -182,11 +233,11 @@ const CursoDetalle = () => {
       <main className="pt-24 md:pt-28 pb-20">
         <div className="container max-w-5xl mx-auto">
           <Link
-            to="/catalogo"
+            to={backPath}
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
           >
             <ArrowLeft className="h-4 w-4" />
-            Volver al catálogo
+            {backLabel}
           </Link>
 
           {loading && (
@@ -290,10 +341,10 @@ const CursoDetalle = () => {
                                 </p>
                                 <p className="text-xs text-muted-foreground">
                                   {formatDuration(clip.duration_seconds || 0)}
-                                  {!isPurchased ? " · Disponible tras la compra" : ""}
+                                  {!canWatchVideos ? " · Disponible tras la compra" : ""}
                                 </p>
                               </div>
-                              {isPurchased && clip.video_url ? (
+                              {canWatchVideos && clip.video_url ? (
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -318,11 +369,35 @@ const CursoDetalle = () => {
                   <aside className="rounded-3xl border border-border bg-muted/30 p-5 h-fit space-y-4 md:sticky md:top-28">
                     <p className="text-3xl font-display font-extrabold">${price.toFixed(2)}</p>
                     <p className="text-sm text-muted-foreground">
-                      Incluye {videos.length} {videos.length === 1 ? "video" : "videos"} · Acceso
-                      permanente tras la compra
+                      Incluye {videos.length} {videos.length === 1 ? "video" : "videos"}
+                      {canManage
+                        ? " · Vista de gestión"
+                        : " · Acceso permanente tras la compra"}
                     </p>
 
-                    {!canPurchase ? (
+                    {canManage ? (
+                      <div className="space-y-3">
+                        <div className="rounded-2xl border border-border bg-background/70 p-4 space-y-1 text-sm">
+                          <p className="font-semibold">Tu coreografía</p>
+                          <p className="text-muted-foreground">
+                            {course.is_approved ? "Publicada / aprobada" : "Pendiente de aprobación"}
+                            {" · "}
+                            {course.stats?.total_sales_count ?? 0} ventas
+                          </p>
+                        </div>
+                        <Button className="w-full gap-2" size="lg" onClick={() => setEditOpen(true)}>
+                          <Pencil className="h-4 w-4" />
+                          Editar coreografía
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => navigate(dashboardHomePath(user?.role))}
+                        >
+                          Ir al dashboard
+                        </Button>
+                      </div>
+                    ) : !canPurchase ? (
                       <div className="rounded-2xl border border-border bg-background/70 p-4 space-y-2">
                         <p className="text-sm font-semibold">Solo consulta</p>
                         <p className="text-sm text-muted-foreground">
@@ -352,7 +427,7 @@ const CursoDetalle = () => {
                       </Button>
                     )}
 
-                    {canPurchase && !isPurchased && (
+                    {canPurchase && !isPurchased && !canManage && (
                       <Button
                         variant="outline"
                         className="w-full"
@@ -464,6 +539,23 @@ const CursoDetalle = () => {
         </div>
       </main>
       <Footer />
+
+      {canManage && course && (
+        <ChoreographyFormDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          mode="edit"
+          choreography={course}
+          danceStyles={danceStyles}
+          teacherOptions={teacherOptions}
+          teacherOptionsUnavailable={teacherOptionsUnavailable}
+          currentUserId={user?.id}
+          onSaved={() => {
+            setEditOpen(false);
+            reloadCourse();
+          }}
+        />
+      )}
     </div>
   );
 };
