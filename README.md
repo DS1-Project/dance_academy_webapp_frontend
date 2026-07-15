@@ -115,6 +115,15 @@ Una vez iniciado el servidor de desarrollo, abra el navegador y acceda a:
 ```text
 http://localhost:5173
 ```
+### Usuarios de prueba:
+admin1@gmail.com
+password:12345678
+
+cliente21@gmail.com
+password:12345678
+
+teacher1@gmail.com
+password:12345678
 
 ---
 

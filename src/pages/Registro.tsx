@@ -4,13 +4,26 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { UserPlus, AlertCircle, Loader2, Clock } from "lucide-react";
+import { UserPlus, AlertCircle, Loader2 } from "lucide-react";
+import ReCAPTCHA from "react-google-recaptcha";
+import { roleRequiresApproval, type RegisterRole } from "@/lib/userRoleOptions";
+
+const RECAPTCHA_SITE_KEY =
+  import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LfIKlItAAAAADuaamFvCgnFpHUvGruN2egJsNX6";
+
+/** Solo estos dos roles en el registro público. */
+const REGISTER_ROLE_OPTIONS: { value: RegisterRole; label: string }[] = [
+  { value: "client", label: "Cliente" },
+  { value: "teacher", label: "Profesor" },
+];
 
 const Registro = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [role, setRole] = useState<RegisterRole>("client");
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [error, setError] = useState("");
   const { register, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -28,13 +41,29 @@ const Registro = () => {
       return;
     }
 
-    const result = await register(name, email, password, confirm);
+    const token =
+      captchaToken ||
+      (import.meta.env.DEV
+        ? import.meta.env.VITE_CAPTCHA_DEV_TOKEN || "dev-bypass"
+        : null);
+
+    if (!token) {
+      setError("Completa el captcha antes de continuar.");
+      return;
+    }
+
+    const result = await register(name, email, password, confirm, role, token);
 
     if (result.success) {
+      const needsApproval = result.pendingApproval || roleRequiresApproval(role);
+      const roleLabel =
+        REGISTER_ROLE_OPTIONS.find((option) => option.value === role)?.label.toLowerCase() ??
+        "usuario";
       navigate("/login", {
         state: {
-          message:
-            "¡Cuenta creada con éxito! Tu registro está en revisión. Un administrador debe aprobar tu acceso antes de que puedas iniciar sesión. Te notificaremos cuando esté listo.",
+          message: needsApproval
+            ? `¡Cuenta creada! Tu registro como ${roleLabel} está pendiente de aprobación. Un administrador debe autorizar tu acceso antes de iniciar sesión.`
+            : "¡Cuenta creada con éxito! Ya puedes iniciar sesión con tu correo y contraseña.",
         },
       });
     } else {
@@ -53,14 +82,6 @@ const Registro = () => {
           </div>
 
           <div className="bg-card rounded-3xl shadow-card p-6 md:p-8">
-            <div className="flex items-start gap-2 p-3 rounded-xl bg-primary/10 text-primary text-sm mb-6">
-              <Clock className="h-4 w-4 shrink-0 mt-0.5" />
-              <p>
-                Al registrarte, tu cuenta quedará pendiente de aprobación. Solo podrás ingresar
-                cuando un administrador autorice tu acceso.
-              </p>
-            </div>
-
             {error && (
               <div className="flex items-center gap-2 p-3 rounded-xl bg-destructive/10 text-destructive text-sm mb-6">
                 <AlertCircle className="h-4 w-4 shrink-0" />
@@ -69,6 +90,23 @@ const Registro = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="label-caps text-xs text-muted-foreground mb-1.5 block">
+                  Tipo de usuario
+                </label>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as RegisterRole)}
+                  disabled={isLoading}
+                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+                >
+                  {REGISTER_ROLE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label className="label-caps text-xs text-muted-foreground mb-1.5 block">
                   Nombre completo
@@ -125,6 +163,13 @@ const Registro = () => {
                   className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                 />
               </div>
+
+              <ReCAPTCHA
+                sitekey={RECAPTCHA_SITE_KEY}
+                onChange={(token) => setCaptchaToken(token)}
+                onExpired={() => setCaptchaToken(null)}
+              />
+
               <Button type="submit" className="w-full gap-2" size="lg" disabled={isLoading}>
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

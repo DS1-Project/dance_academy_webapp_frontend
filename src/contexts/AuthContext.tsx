@@ -1,5 +1,11 @@
 import { createContext, useContext, useState, ReactNode } from "react";
-import { loginRequest, registerRequest, mapBackendUserToUser } from "@/services/authService";
+import {
+  getMeRequest,
+  loginRequest,
+  mapBackendUserToUser,
+  registerRequest,
+  updateMeRequest,
+} from "@/services/authService";
 import { getApiErrorMessage, tokenStorage } from "@/lib/api";
 import type { User, UserRole } from "@/types/auth";
 
@@ -7,13 +13,24 @@ export type { User, UserRole };
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (
+    email: string,
+    password: string,
+    captchaToken: string
+  ) => Promise<{ success: boolean; error?: string; user?: { role?: string } }>;
   register: (
     name: string,
     email: string,
     password: string,
-    passwordConfirm: string
+    passwordConfirm: string,
+    role?: "client" | "teacher",
+    captchaToken?: string
   ) => Promise<{ success: boolean; error?: string; pendingApproval?: boolean }>;
+  updateProfile: (payload: {
+    firstName: string;
+    lastName: string;
+  }) => Promise<{ success: boolean; error?: string }>;
+  refreshUser: () => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -28,19 +45,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  const login = async (email: string, password: string) => {
+  const persistUser = (mappedUser: User) => {
+    setUser(mappedUser);
+    localStorage.setItem("danceflow_user", JSON.stringify(mappedUser));
+  };
+
+  const login = async (email: string, password: string, captchaToken: string) => {
     setIsLoading(true);
     try {
       const data = await loginRequest({
         email,
         password,
-        captcha_token: import.meta.env.VITE_CAPTCHA_DEV_TOKEN ?? "dev-bypass",
+        captcha_token: captchaToken,
       });
 
       tokenStorage.setTokens(data.access, data.refresh);
       const mappedUser = mapBackendUserToUser(data.user);
-      setUser(mappedUser);
-      localStorage.setItem("danceflow_user", JSON.stringify(mappedUser));
+      persistUser(mappedUser);
 
       return { success: true, user: data.user };
     } catch (error) {
@@ -54,7 +75,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     name: string,
     email: string,
     password: string,
-    passwordConfirm: string
+    passwordConfirm: string,
+    role: "client" | "teacher" = "client",
+    captchaToken = ""
   ) => {
     setIsLoading(true);
     try {
@@ -67,13 +90,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password_confirm: passwordConfirm,
         first_name: firstName,
         last_name: lastName,
+        role,
+        captcha_token: captchaToken,
       });
 
-      return { success: true, pendingApproval: true };
+      return { success: true, pendingApproval: role !== "client" };
     } catch (error) {
       return { success: false, error: getApiErrorMessage(error, "Error al registrarse") };
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const updateProfile = async (payload: { firstName: string; lastName: string }) => {
+    setIsLoading(true);
+    try {
+      const data = await updateMeRequest({
+        first_name: payload.firstName,
+        last_name: payload.lastName,
+      });
+      persistUser(mapBackendUserToUser(data));
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: getApiErrorMessage(error, "No se pudo actualizar el perfil") };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const refreshUser = async () => {
+    try {
+      const data = await getMeRequest();
+      persistUser(mapBackendUserToUser(data));
+    } catch {
+      // Session may be stale; keep cached user until next explicit login/logout.
     }
   };
 
@@ -85,7 +135,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, login, register, logout, isAuthenticated: !!user, isLoading }}
+      value={{
+        user,
+        login,
+        register,
+        updateProfile,
+        refreshUser,
+        logout,
+        isAuthenticated: !!user,
+        isLoading,
+      }}
     >
       {children}
     </AuthContext.Provider>

@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, ShoppingCart, LogOut, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
+import { CartSheet } from "@/components/CartSheet";
+import { canPurchaseCourses } from "@/lib/purchaseAccess";
+import { dashboardHomePath } from "@/lib/dashboardHome";
 
 const navLinks = [
   { label: "Inicio", path: "/" },
@@ -17,6 +20,7 @@ export function Navbar() {
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
   const { itemCount } = useCart();
+  const homePath = dashboardHomePath(user?.role);
 
   const handleLogout = () => {
     logout();
@@ -52,22 +56,33 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link to="/carrito" className="relative p-2 rounded-full hover:bg-muted transition-colors">
-            <ShoppingCart className="h-5 w-5" />
-            {itemCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-gradient-brand rounded-full text-[10px] text-primary-foreground font-bold flex items-center justify-center">
-                {itemCount}
-              </span>
-            )}
-          </Link>
+          {canPurchaseCourses(user?.role) && (
+            <CartSheet>
+              <button
+                type="button"
+                aria-label="Abrir carrito"
+                className="relative p-2 rounded-full hover:bg-muted transition-colors"
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {itemCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-gradient-brand rounded-full text-[10px] text-primary-foreground font-bold flex items-center justify-center">
+                    {itemCount}
+                  </span>
+                )}
+              </button>
+            </CartSheet>
+          )}
 
           {isAuthenticated && user ? (
             <div className="hidden sm:flex items-center gap-2">
               <Button variant="ghost" size="sm" className="gap-1.5" asChild>
-                <Link to="/dashboard">
+                <Link to={homePath}>
                   <LayoutDashboard className="h-4 w-4" />
                   Dashboard
                 </Link>
+              </Button>
+              <Button variant="ghost" size="sm" className="gap-1.5" asChild>
+                <Link to="/perfil">Perfil</Link>
               </Button>
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted">
                 <div className="w-6 h-6 rounded-full bg-gradient-brand flex items-center justify-center text-primary-foreground text-xs font-bold">
@@ -116,7 +131,7 @@ export function Navbar() {
             ))}
             {isAuthenticated ? (
               <>
-                <Link to="/dashboard" onClick={() => setMobileOpen(false)} className="px-4 py-3 rounded-xl text-sm font-semibold text-primary">
+                <Link to={homePath} onClick={() => setMobileOpen(false)} className="px-4 py-3 rounded-xl text-sm font-semibold text-primary">
                   Dashboard
                 </Link>
                 <Button variant="outline" size="sm" onClick={() => { handleLogout(); setMobileOpen(false); }}>

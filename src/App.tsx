@@ -7,17 +7,20 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import Index from "./pages/Index.tsx";
 import Catalogo from "./pages/Catalogo.tsx";
+import CursoDetalle from "./pages/CursoDetalle.tsx";
 import Profesores from "./pages/Profesores.tsx";
 import Login from "./pages/Login.tsx";
 import Registro from "./pages/Registro.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import Carrito from "./pages/Carrito.tsx";
+import Perfil from "./pages/Perfil.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import { AdminRoute } from "@/components/AdminRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard.tsx";
 import UserManagement from "./pages/admin/UserManagement.tsx";
 import CourseConfig from "./pages/admin/CourseConfig.tsx";
 import CourseStatistics from "./pages/admin/CourseStatistics.tsx";
+import Reports from "./pages/admin/Reports.tsx";
 
 const queryClient = new QueryClient();
 
@@ -32,10 +35,12 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/catalogo" element={<Catalogo />} />
+              <Route path="/curso/:id" element={<CursoDetalle />} />
               <Route path="/profesores" element={<Profesores />} />
               <Route path="/login" element={<Login />} />
               <Route path="/registro" element={<Registro />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/perfil" element={<Perfil />} />
               <Route
                 path="/admin"
                 element={
@@ -65,6 +70,14 @@ const App = () => (
                 element={
                   <AdminRoute>
                     <CourseStatistics />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/reportes"
+                element={
+                  <AdminRoute>
+                    <Reports />
                   </AdminRoute>
                 }
               />

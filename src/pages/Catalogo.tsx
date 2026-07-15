@@ -1,32 +1,79 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ChoreographyCard } from "@/components/ChoreographyCard";
-import { choreographies, genres, difficulties, teachers } from "@/lib/mock-data";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { difficulties } from "@/lib/mock-data";
+import { useCatalogChoreographies } from "@/hooks/useCatalogChoreographies";
+import { Search, SlidersHorizontal, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Catalogo = () => {
+  const { items, styles, loading, error, reload } = useCatalogChoreographies();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
   const [selectedTeacher, setSelectedTeacher] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
+  useEffect(() => {
+    const genreFromUrl = searchParams.get("genre");
+    if (genreFromUrl) {
+      setSelectedGenre(genreFromUrl);
+      setShowFilters(true);
+    }
+  }, [searchParams]);
+
+  const selectGenre = (genre: string | null) => {
+    setSelectedGenre(genre);
+    if (genre) {
+      setSearchParams({ genre });
+    } else {
+      setSearchParams({});
+    }
+  };
+
+  const genres = useMemo(
+    () =>
+      styles.length > 0
+        ? styles.map((s) => s.name)
+        : [...new Set(items.map((c) => c.genre))].sort((a, b) => a.localeCompare(b, "es")),
+    [styles, items]
+  );
+
+  const teachers = useMemo(() => {
+    const names = new Set<string>();
+    for (const c of items) {
+      names.add(c.mainTeacher);
+      if (c.guestTeacher) {
+        c.guestTeacher.split(", ").forEach((name) => names.add(name));
+      }
+    }
+    return [...names].sort((a, b) => a.localeCompare(b, "es"));
+  }, [items]);
+
   const filtered = useMemo(() => {
-    return choreographies.filter((c) => {
-      const matchSearch = !search || c.songName.toLowerCase().includes(search.toLowerCase()) || c.mainTeacher.toLowerCase().includes(search.toLowerCase());
+    return items.filter((c) => {
+      const matchSearch =
+        !search ||
+        c.songName.toLowerCase().includes(search.toLowerCase()) ||
+        c.mainTeacher.toLowerCase().includes(search.toLowerCase()) ||
+        (c.guestTeacher?.toLowerCase().includes(search.toLowerCase()) ?? false);
       const matchGenre = !selectedGenre || c.genre === selectedGenre;
       const matchDifficulty = !selectedDifficulty || c.difficulty === selectedDifficulty;
-      const matchTeacher = !selectedTeacher || c.mainTeacher === selectedTeacher || c.guestTeacher === selectedTeacher;
+      const matchTeacher =
+        !selectedTeacher ||
+        c.mainTeacher === selectedTeacher ||
+        c.guestTeacher?.split(", ").includes(selectedTeacher);
       return matchSearch && matchGenre && matchDifficulty && matchTeacher;
     });
-  }, [search, selectedGenre, selectedDifficulty, selectedTeacher]);
+  }, [items, search, selectedGenre, selectedDifficulty, selectedTeacher]);
 
   const hasFilters = selectedGenre || selectedDifficulty || selectedTeacher;
 
   const clearFilters = () => {
-    setSelectedGenre(null);
+    selectGenre(null);
     setSelectedDifficulty(null);
     setSelectedTeacher(null);
     setSearch("");
@@ -78,7 +125,7 @@ const Catalogo = () => {
                     {genres.map((g) => (
                       <button
                         key={g}
-                        onClick={() => setSelectedGenre(selectedGenre === g ? null : g)}
+                        onClick={() => selectGenre(selectedGenre === g ? null : g)}
                         className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-[0.95] ${
                           selectedGenre === g
                             ? "bg-gradient-brand text-primary-foreground"
@@ -141,22 +188,40 @@ const Catalogo = () => {
           </div>
 
           {/* Results */}
-          <p className="text-sm text-muted-foreground mb-6">{filtered.length} coreografías encontradas</p>
-          {filtered.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 stagger-children">
-              {filtered.map((c) => (
-                <ChoreographyCard key={c.id} choreography={c} />
-              ))}
+          {loading ? (
+            <div className="flex items-center justify-center gap-2 py-20 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span>Cargando catálogo...</span>
             </div>
-          ) : (
+          ) : error ? (
             <div className="text-center py-20">
-              <p className="text-4xl mb-4">🔍</p>
-              <h3 className="text-lg font-bold mb-2">Sin resultados</h3>
-              <p className="text-muted-foreground text-sm">Intenta con otros filtros o términos de búsqueda.</p>
-              <Button variant="outline" size="sm" onClick={clearFilters} className="mt-4">
-                Limpiar filtros
+              <p className="text-4xl mb-4">⚠️</p>
+              <h3 className="text-lg font-bold mb-2">No se pudo cargar el catálogo</h3>
+              <p className="text-muted-foreground text-sm mb-4">{error}</p>
+              <Button variant="outline" size="sm" onClick={reload}>
+                Reintentar
               </Button>
             </div>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground mb-6">{filtered.length} coreografías encontradas</p>
+              {filtered.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 stagger-children">
+                  {filtered.map((c) => (
+                    <ChoreographyCard key={c.id} choreography={c} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-20">
+                  <p className="text-4xl mb-4">🔍</p>
+                  <h3 className="text-lg font-bold mb-2">Sin resultados</h3>
+                  <p className="text-muted-foreground text-sm">Intenta con otros filtros o términos de búsqueda.</p>
+                  <Button variant="outline" size="sm" onClick={clearFilters} className="mt-4">
+                    Limpiar filtros
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>

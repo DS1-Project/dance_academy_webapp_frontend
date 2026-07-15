@@ -5,14 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Eye, EyeOff, LogIn, AlertCircle, Loader2, Clock } from "lucide-react";
+import ReCAPTCHA from "react-google-recaptcha";
+import { dashboardHomePath } from "@/lib/dashboardHome";
+import { required, validateEmail } from "@/lib/formValidation";
 
-const PENDING_APPROVAL_MESSAGE =
-  "Tu cuenta está pendiente de aprobación. Un administrador debe autorizar tu acceso antes de que puedas ingresar a la plataforma.";
+const RECAPTCHA_SITE_KEY =
+  import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LfIKlItAAAAADuaamFvCgnFpHUvGruN2egJsNX6";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [error, setError] = useState("");
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -23,18 +27,28 @@ const Login = () => {
     e.preventDefault();
     setError("");
 
-    const result = await login(email, password);
+    const emailError = validateEmail(email);
+    const passwordError = required(password, "La contraseña");
+    if (emailError || passwordError) {
+      setError(emailError || passwordError || "Completa los campos.");
+      return;
+    }
+
+    const token =
+      captchaToken ||
+      (import.meta.env.DEV
+        ? import.meta.env.VITE_CAPTCHA_DEV_TOKEN || "dev-bypass"
+        : null);
+
+    if (!token) {
+      setError("Completa el captcha antes de continuar.");
+      return;
+    }
+
+    const result = await login(email, password, token);
 
     if (result.success) {
-      // Extraemos el rol del usuario desde el resultado del login
-      const role = result.user?.role; 
-      
-      // Evaluamos si el rol es 'admin' o 'director'
-      if (role === "admin" || role === "director") {
-        navigate("/admin");
-      } else {
-        navigate("/dashboard");
-      }
+      navigate(dashboardHomePath(result.user?.role));
     } else {
       setError(result.error || "Error al iniciar sesión");
     }
@@ -52,7 +66,7 @@ const Login = () => {
             <p className="text-muted-foreground">Accede a tu cuenta de DanceFlow</p>
           </div>
 
-          <div className="bg-card rounded-3xl shadow-card p-6 md:p-8 mb-6">
+          <div className="bg-card rounded-3xl shadow-card p-6 md:p-8">
             {infoMessage && (
               <div className="flex items-start gap-2 p-3 rounded-xl bg-primary/10 text-primary text-sm mb-6">
                 <Clock className="h-4 w-4 shrink-0 mt-0.5" />
@@ -115,6 +129,13 @@ const Login = () => {
                   </button>
                 </div>
               </div>
+
+              <ReCAPTCHA
+                sitekey={RECAPTCHA_SITE_KEY}
+                onChange={(token) => setCaptchaToken(token)}
+                onExpired={() => setCaptchaToken(null)}
+              />
+
               <Button type="submit" className="w-full gap-2" size="lg" disabled={isLoading}>
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -131,13 +152,6 @@ const Login = () => {
                 Regístrate
               </Link>
             </p>
-          </div>
-
-          <div className="bg-muted/50 rounded-3xl p-5">
-            <div className="flex items-start gap-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4 shrink-0 mt-0.5" />
-              <p>{PENDING_APPROVAL_MESSAGE}</p>
-            </div>
           </div>
         </div>
       </main>

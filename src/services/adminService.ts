@@ -1,8 +1,23 @@
 import { api } from "@/lib/api";
-import type { AdminUser, UpdateUserPayload } from "@/types/admin";
+import type { AdminUser, CreateUserPayload, UpdateUserPayload } from "@/types/admin";
+import type { BackendRole } from "@/types/auth";
 
-export async function getAllUsers(): Promise<AdminUser[]> {
-  const { data } = await api.get<AdminUser[]>("/api/auth/users/");
+export async function getAllUsers(params?: { role?: BackendRole }): Promise<AdminUser[]> {
+  const { data } = await api.get<AdminUser[]>("/api/auth/users/", { params });
+  return data;
+}
+
+/**
+ * Lista de profesores para el selector de "guest teachers". Solo admin/director
+ * pueden listar usuarios; si un profesor la invoca, el backend responde 403 y
+ * se propaga el error para que la UI lo trate como "sin selección disponible".
+ */
+export async function getTeacherOptions(): Promise<AdminUser[]> {
+  return getAllUsers({ role: "teacher" });
+}
+
+export async function createUser(userData: CreateUserPayload): Promise<AdminUser> {
+  const { data } = await api.post<AdminUser>("/api/auth/users/", userData);
   return data;
 }
 

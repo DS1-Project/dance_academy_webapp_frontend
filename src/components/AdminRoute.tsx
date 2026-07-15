@@ -8,7 +8,8 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (user.role !== "admin") {
+  const isAdminOrDirector = user.role === "admin" || user.role === "director";
+  if (!isAdminOrDirector) {
     return <Navigate to="/dashboard" replace />;
   }
 

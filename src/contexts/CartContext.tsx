@@ -1,4 +1,7 @@
 import { createContext, useContext, useState, ReactNode } from "react";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { canPurchaseCourses } from "@/lib/purchaseAccess";
 import type { Choreography } from "@/lib/mock-data";
 
 export interface CartItem {
@@ -8,7 +11,8 @@ export interface CartItem {
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (choreography: Choreography) => void;
+  addItem: (choreography: Choreography) => boolean;
+  isInCart: (id: string) => boolean;
   removeItem: (id: string) => void;
   clearCart: () => void;
   total: number;
@@ -18,14 +22,30 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
 
-  const addItem = (choreography: Choreography) => {
-    setItems((prev) => {
-      const exists = prev.find((i) => i.choreography.id === choreography.id);
-      if (exists) return prev;
-      return [...prev, { choreography, quantity: 1 }];
+  const isInCart = (id: string) => items.some((i) => i.choreography.id === id);
+
+  const addItem = (choreography: Choreography): boolean => {
+    if (!canPurchaseCourses(user?.role)) {
+      toast.error("Compra no disponible", {
+        description: "Tu rol puede explorar el catálogo, pero no realizar compras.",
+      });
+      return false;
+    }
+    const exists = items.some((i) => i.choreography.id === choreography.id);
+    if (exists) {
+      toast.error("Ya está en tu carrito", {
+        description: `"${choreography.songName}" ya fue agregado. Evitamos cobros duplicados.`,
+      });
+      return false;
+    }
+    setItems((prev) => [...prev, { choreography, quantity: 1 }]);
+    toast.success("Agregado al carrito", {
+      description: `"${choreography.songName}" — $${choreography.price}`,
     });
+    return true;
   };
 
   const removeItem = (id: string) => {
@@ -38,7 +58,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const itemCount = items.length;
 
   return (
-    <CartContext.Provider value={{ items, addItem, removeItem, clearCart, total, itemCount }}>
+    <CartContext.Provider value={{ items, addItem, isInCart, removeItem, clearCart, total, itemCount }}>
       {children}
     </CartContext.Provider>
   );

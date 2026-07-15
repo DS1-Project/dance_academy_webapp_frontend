@@ -10,8 +10,9 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { getApiErrorMessage } from "@/lib/api";
-import { updateUser } from "@/services/adminService";
-import type { AdminUser, UpdateUserPayload } from "@/types/admin";
+import { firstError, required, validateEmail, validatePassword } from "@/lib/formValidation";
+import { createUser, updateUser } from "@/services/adminService";
+import type { AdminUser, CreateUserPayload, UpdateUserPayload } from "@/types/admin";
 import type { BackendRole, UserRole } from "@/types/auth";
 import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 
@@ -29,84 +30,105 @@ const backendToFrontendRole: Record<BackendRole, UserRole> = {
   client: "cliente",
 };
 
-const roleOptions: { value: UserRole; label: string }[] = [
+const createRoleOptions: { value: UserRole; label: string }[] = [
+  { value: "cliente", label: "Cliente" },
+  { value: "profesor", label: "Profesor" },
   { value: "admin", label: "Administrador" },
   { value: "director", label: "Director" },
-  { value: "profesor", label: "Profesor" },
-  { value: "cliente", label: "Cliente" },
 ];
+
+const editRoleOptions = createRoleOptions;
 
 interface UserFormModalProps {
   user: AdminUser | null;
+  mode: "create" | "edit";
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: (updatedUser: AdminUser) => void;
+  onSuccess: (user: AdminUser) => void;
 }
 
-export function UserFormModal({ user, open, onOpenChange, onSuccess }: UserFormModalProps) {
+export function UserFormModal({ user, mode, open, onOpenChange, onSuccess }: UserFormModalProps) {
+  const isCreate = mode === "create";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<UserRole>("cliente");
+  const [role, setRole] = useState<UserRole>("profesor");
+  const [isApproved, setIsApproved] = useState(true);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
-    setName([user.first_name, user.last_name].filter(Boolean).join(" ").trim());
-    setEmail(user.email);
-    setRole(backendToFrontendRole[user.role] ?? "cliente");
-    setPassword("");
+    if (!open) return;
+    if (isCreate || !user) {
+      setName("");
+      setEmail("");
+      setRole("profesor");
+      setIsApproved(true);
+      setPassword("");
+    } else {
+      setName([user.first_name, user.last_name].filter(Boolean).join(" ").trim());
+      setEmail(user.email);
+      setRole(backendToFrontendRole[user.role] ?? "cliente");
+      setIsApproved(user.is_approved);
+      setPassword("");
+    }
     setShowPassword(false);
     setError("");
-  }, [user, open]);
+  }, [user, open, isCreate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
-
     setError("");
+
+    const [firstName, ...rest] = name.trim().split(/\s+/);
+    const lastName = rest.join(" ");
+
+    const validationError = firstError(
+      required(firstName, "El nombre"),
+      required(lastName, "El apellido"),
+      validateEmail(email),
+      isCreate ? validatePassword(password) : password ? validatePassword(password) : null
+    );
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setIsSubmitting(true);
-
     try {
-      const [firstName, ...rest] = name.trim().split(/\s+/);
-      const lastName = rest.join(" ");
-
-      const payload: UpdateUserPayload = {
-        email: email.trim(),
-        first_name: firstName,
-        last_name: lastName,
-      };
-
-      const backendRole = frontendToBackendRole[role];
-      if (backendRole !== "client") {
-        payload.role = backendRole;
+      if (isCreate) {
+        const backendRole = frontendToBackendRole[role];
+        const payload: CreateUserPayload = {
+          email: email.trim(),
+          first_name: firstName,
+          last_name: lastName,
+          role: backendRole,
+          password,
+          is_approved: isApproved,
+          is_active: true,
+        };
+        const created = await createUser(payload);
+        toast({ title: "Usuario creado", description: "La cuenta se creó correctamente." });
+        onSuccess(created);
+      } else if (user) {
+        const payload: UpdateUserPayload = {
+          email: email.trim(),
+          first_name: firstName,
+          last_name: lastName,
+          role: frontendToBackendRole[role],
+          is_approved: isApproved,
+        };
+        if (password.trim()) payload.password = password;
+        const updatedUser = await updateUser(user.id, payload);
+        toast({ title: "Usuario actualizado", description: "Los cambios se guardaron correctamente." });
+        onSuccess(updatedUser);
       }
-
-      if (password.trim()) {
-        if (password.length < 8) {
-          setError("La contraseña debe tener al menos 8 caracteres");
-          return;
-        }
-        payload.password = password;
-      }
-
-      const updatedUser = await updateUser(user.id, payload);
-      toast({
-        title: "Usuario actualizado",
-        description: "Los cambios se guardaron correctamente.",
-      });
-      onSuccess(updatedUser);
       onOpenChange(false);
     } catch (err) {
-      const message = getApiErrorMessage(err, "No se pudo actualizar el usuario");
+      const message = getApiErrorMessage(err, "No se pudo guardar el usuario");
       setError(message);
-      toast({
-        title: "Error al actualizar",
-        description: message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: message, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -116,9 +138,11 @@ export function UserFormModal({ user, open, onOpenChange, onSuccess }: UserFormM
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md rounded-2xl">
         <DialogHeader>
-          <DialogTitle>Editar usuario</DialogTitle>
+          <DialogTitle>{isCreate ? "Crear usuario" : "Editar usuario"}</DialogTitle>
           <DialogDescription>
-            Modifica los datos del usuario. El ID no se puede cambiar.
+            {isCreate
+              ? "Crea un cliente, profesor, administrador o director."
+              : "Puedes cambiar el rol, el estado de aprobación y los datos del usuario."}
           </DialogDescription>
         </DialogHeader>
 
@@ -130,20 +154,20 @@ export function UserFormModal({ user, open, onOpenChange, onSuccess }: UserFormM
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="label-caps text-xs text-muted-foreground mb-1.5 block">ID</label>
-            <input
-              type="text"
-              value={user?.id ?? ""}
-              disabled
-              className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 text-sm text-muted-foreground cursor-not-allowed"
-            />
-          </div>
+          {!isCreate && (
+            <div>
+              <label className="label-caps text-xs text-muted-foreground mb-1.5 block">ID</label>
+              <input
+                type="text"
+                value={user?.id ?? ""}
+                disabled
+                className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 text-sm text-muted-foreground cursor-not-allowed"
+              />
+            </div>
+          )}
 
           <div>
-            <label className="label-caps text-xs text-muted-foreground mb-1.5 block">
-              Nombre completo
-            </label>
+            <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Nombre completo</label>
             <input
               type="text"
               value={name}
@@ -156,9 +180,7 @@ export function UserFormModal({ user, open, onOpenChange, onSuccess }: UserFormM
           </div>
 
           <div>
-            <label className="label-caps text-xs text-muted-foreground mb-1.5 block">
-              Correo electrónico
-            </label>
+            <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Correo electrónico</label>
             <input
               type="email"
               value={email}
@@ -178,7 +200,7 @@ export function UserFormModal({ user, open, onOpenChange, onSuccess }: UserFormM
               disabled={isSubmitting}
               className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
             >
-              {roleOptions.map((option) => (
+              {(isCreate ? createRoleOptions : editRoleOptions).map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -187,15 +209,29 @@ export function UserFormModal({ user, open, onOpenChange, onSuccess }: UserFormM
           </div>
 
           <div>
+            <label className="label-caps text-xs text-muted-foreground mb-1.5 block">Estado</label>
+            <select
+              value={isApproved ? "approved" : "pending"}
+              onChange={(e) => setIsApproved(e.target.value === "approved")}
+              disabled={isSubmitting}
+              className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+            >
+              <option value="approved">Aprobado</option>
+              <option value="pending">Pendiente</option>
+            </select>
+          </div>
+
+          <div>
             <label className="label-caps text-xs text-muted-foreground mb-1.5 block">
-              Nueva contraseña (opcional)
+              {isCreate ? "Contraseña" : "Nueva contraseña (opcional)"}
             </label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Dejar vacío para no cambiar"
+                placeholder={isCreate ? "Mínimo 8 caracteres" : "Dejar vacío para no cambiar"}
+                required={isCreate}
                 disabled={isSubmitting}
                 className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary pr-12 disabled:opacity-60"
               />
@@ -210,17 +246,12 @@ export function UserFormModal({ user, open, onOpenChange, onSuccess }: UserFormM
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-            >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting} className="gap-2">
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isSubmitting ? "Guardando..." : "Guardar cambios"}
+              {isCreate ? "Crear usuario" : "Guardar cambios"}
             </Button>
           </DialogFooter>
         </form>
