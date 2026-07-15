@@ -23,6 +23,7 @@ import { getApiErrorMessage } from "@/lib/api";
 import { mapBackendChoreographyToCard } from "@/lib/choreographyMapper";
 import { dashboardHomePath } from "@/lib/dashboardHome";
 import { canPurchaseCourses } from "@/lib/purchaseAccess";
+import { canLeaveReview, canViewReviewsSection } from "@/lib/reviewAccess";
 import {
   getChoreographyDetail,
   listChoreographyVideos,
@@ -127,6 +128,8 @@ const CursoDetalle = () => {
   const inCart = course ? isInCart(course.id) : false;
   const price = course?.stats?.actual_price ? Number(course.stats.actual_price) : 0;
   const isPurchased = Boolean(course?.is_purchased);
+  const canReview = canLeaveReview(user?.role, isPurchased);
+  const showReviews = canViewReviewsSection(user?.role);
 
   async function handleBuy() {
     if (!card) return;
@@ -145,7 +148,7 @@ const CursoDetalle = () => {
 
   async function handleSubmitReview(event: React.FormEvent) {
     event.preventDefault();
-    if (!course) return;
+    if (!course || !canReview) return;
     if (rating < 1 || rating > 5) {
       setReviewError("La calificación debe estar entre 1 y 5 estrellas.");
       return;
@@ -369,6 +372,7 @@ const CursoDetalle = () => {
                 </div>
               </section>
 
+              {showReviews && (
               <section id="reviews" className="bg-card rounded-3xl shadow-card p-6 md:p-8 space-y-6">
                 <div>
                   <h2 className="text-2xl font-display font-extrabold mb-1">Reseñas</h2>
@@ -378,7 +382,7 @@ const CursoDetalle = () => {
                   </p>
                 </div>
 
-                {isAuthenticated ? (
+                {canReview ? (
                   <form onSubmit={handleSubmitReview} className="rounded-2xl border border-border bg-muted/40 p-4 space-y-3">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div>
@@ -404,17 +408,19 @@ const CursoDetalle = () => {
                   </form>
                 ) : (
                   <div className="rounded-2xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-                    <p className="mb-3">Inicia sesión para dejar una reseña.</p>
-                    <Link to="/login">
-                      <Button size="sm">Iniciar sesión</Button>
-                    </Link>
+                    <p>
+                      {isAuthenticated
+                        ? "Compra este curso para poder calificarlo y dejar un comentario."
+                        : "Solo los clientes que compraron este curso pueden dejar una reseña."}
+                    </p>
                   </div>
                 )}
 
                 <div className="space-y-3">
                   {reviews.length === 0 ? (
                     <p className="text-sm text-muted-foreground rounded-2xl border border-dashed border-border p-4">
-                      Aún no hay reseñas. Sé el primero en opinar.
+                      Aún no hay reseñas
+                      {canReview ? ". Sé el primero en opinar." : "."}
                     </p>
                   ) : (
                     reviews.map((review) => (
@@ -452,6 +458,7 @@ const CursoDetalle = () => {
                   )}
                 </div>
               </section>
+              )}
             </div>
           )}
         </div>
